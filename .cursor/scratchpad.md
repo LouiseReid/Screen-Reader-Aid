@@ -232,8 +232,8 @@ where Accessibility permission persists across launches).
 - [x] 0.4 Read focused element once (spike) (VERIFIED by human 2026-06-19)
 - [x] 0.5 Web/Electron target spike (`AXManualAccessibility`) (VERIFIED by human 2026-06-19)
 - [x] ✅ MILESTONE A reached — read focused web element in Chrome + Safari behind permission (2026-06-19)
-- [x] 1.1 AXObserver live focus updates (awaiting human verification)
-- [ ] 1.2 Non-focus-stealing panel window
+- [x] 1.1 AXObserver live focus updates (VERIFIED by human 2026-06-19)
+- [x] 1.2 Non-focus-stealing panel window (awaiting human verification)
 - [ ] 2.1 Announcement synthesizer (+ tests)
 - [ ] 2.2 Render announcement in UI
 - [ ] 3.1 Heuristic issue rules (+ tests)
@@ -390,6 +390,28 @@ doesn't activate our app, so the frontmost app stays the one under test.) Rebuil
 - **Known caveat (fixed by Task 1.2):** when YOU click the Companion window it
   becomes frontmost and will track *its own* focused element. The non-focus-stealing
   panel in 1.2 resolves this.
+
+### Task 1.2 complete — awaiting human verification (2026-06-19)
+- Main (`src/main.ts`, `createWindow`): window is now a floating non-activating panel
+  — `type: 'panel'`, `focusable: false`, `alwaysOnTop: true` +
+  `setAlwaysOnTop(true, 'floating')`, created with `show: false` and shown via
+  `showInactive()` on `ready-to-show`. Removed the auto-open DevTools (it stole focus
+  and opened a separate window). Window resized to a 420×640 panel.
+- **Verified by Executor:** no lint errors. (Behaviour needs the GUI → human check.)
+- **Needs human check (restart — Ctrl-C then `npm start`):**
+  1. On launch the panel should appear floating on top WITHOUT stealing focus — the
+     previously active app/menu bar stays active.
+  2. Clicking the Companion panel should NOT make it the active app (the app under
+     test stays frontmost) and live tracking should keep following the target — i.e.
+     the 1.1 caveat (clicking the Companion showed its own element) should be GONE.
+  3. The panel should stay above other windows while you test.
+  - Note: DevTools no longer auto-opens. If you want the renderer console, we can add
+    a toggle later. Permission-screen buttons still need to be clickable while the
+    window is non-focusable — if they don't respond, flag it (mouse clicks should
+    still work even though keyboard focus is disabled).
+
+> Milestone B (hands-off live focus mirroring that doesn't interfere with testing)
+> reached pending this human verification.
 
 ### ⚠️ Heads-up for Planner: dependency vulnerabilities
 `npm audit` reports 30 vulns (26 high) — **all inside the electron-forge build

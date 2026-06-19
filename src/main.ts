@@ -46,14 +46,21 @@ ipcMain.handle('a11y:openSettings', () => {
 });
 
 const createWindow = () => {
-  // Create the browser window.
+  // A non-activating floating panel: it stays above other apps but never becomes
+  // the active app, so inspecting it doesn't change the focused element we track.
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 420,
+    height: 640,
+    show: false,
+    alwaysOnTop: true,
+    focusable: false,
+    type: 'panel',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
   });
+
+  mainWindow.setAlwaysOnTop(true, 'floating');
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -64,8 +71,10 @@ const createWindow = () => {
     );
   }
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // Show without taking focus from the app under test.
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.showInactive();
+  });
 };
 
 // This method will be called when Electron has finished
