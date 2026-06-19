@@ -227,7 +227,7 @@ where Accessibility permission persists across launches).
 ## Project Status Board
 
 - [x] 0.1 Electron + TypeScript skeleton (awaiting human verification)
-- [ ] 0.2 Native addon hello world (`AXIsProcessTrusted`)
+- [x] 0.2 Native addon hello world (`AXIsProcessTrusted`) (awaiting human verification)
 - [ ] 0.3 Accessibility permission flow
 - [ ] 0.4 Read focused element once (spike)
 - [ ] 0.5 Web/Electron target spike (`AXManualAccessibility`)
@@ -267,6 +267,36 @@ where Accessibility permission persists across launches).
 **Question for Planner/human:** Please confirm the window opens, then tell me to
 proceed to Task 0.2 (native addon hello-world).
 
+### Task 0.2 complete — awaiting human verification (2026-06-19)
+- Added native N-API addon: `native/addon.mm` (exports `isTrusted()` calling
+  `AXIsProcessTrusted()`) + `native/binding.gyp` (links `ApplicationServices` +
+  `AppKit`, c++17).
+- Added deps: `node-addon-api` (dep), `node-gyp` (devDep); npm script
+  `build:native` builds against the installed Electron version's headers.
+- Wired into `src/main.ts`: loads the addon via `createRequire` at runtime and logs
+  `[a11y] AXIsProcessTrusted = <bool>` on app `ready`. Vite externalises `.node`
+  (`vite.main.config.ts`) so the addon is never bundled. Added `native/build/` to
+  `.gitignore`.
+- **Verified by Executor:** `npm run build:native` compiles and links →
+  `native/build/Release/addon.node` (55 KB). Loading that exact binary and calling
+  `isTrusted()` returns a real boolean (`false`, expected — permission not yet
+  granted). No lint errors.
+- **Could NOT verify in this sandbox:** launching the full Electron GUI — the
+  sandbox sets `ELECTRON_RUN_AS_NODE=1` and aborts the GUI runtime with `SIGABRT`.
+  So `npm start` can't actually open a window *from inside the agent sandbox*. This
+  affects Executor verification only; it should work in your normal Terminal.
+- **Needs human check:** in a normal Terminal run `npm start`; the window should open
+  and the terminal should print `[a11y] AXIsProcessTrusted = false` (it'll say
+  `true` once you grant Accessibility permission in Task 0.3).
+
+### ⚠️ Heads-up for Planner: dependency vulnerabilities
+`npm audit` reports 30 vulns (26 high) — **all inside the electron-forge build
+toolchain** (`@electron-forge/*`, `tar`, `tmp`, `cacache`, `@inquirer/*`). These are
+dev/build-time only and not shipped in the app. The only remediation is
+`npm audit fix --force`, which downgrades `@electron-forge/cli` to 7.6.1 (a breaking
+change). I have NOT run it. Decision needed: leave as-is for now, or attempt the
+forced downgrade? Recommend leaving as-is until packaging (Phase 5).
+
 ### Decisions made (locked 2026-06-19)
 1. **Renderer stack:** Plain HTML/CSS/TS + Vite (no React).
 2. **Packaging tool:** `electron-forge`.
@@ -297,3 +327,17 @@ proceed to Task 0.2 (native addon hello-world).
   The Electron binary fetch is `node node_modules/electron/install.js`.
 - (env/tooling) `ps`/`pgrep` are blocked by the sandbox ("sysmond service not
   found"); confirm long-running GUI launches via the terminal log file instead.
+- (env/tooling) The agent sandbox sets `ELECTRON_RUN_AS_NODE=1` and the Electron GUI
+  runtime aborts with `SIGABRT` inside it — you cannot open an Electron window from
+  the agent here. Verify GUI behaviour in a real Terminal. To test native addons
+  headlessly, load the compiled `.node` in plain Node (N-API is ABI-stable across
+  Node/Electron) and call the exported function.
+- (build) binding.gyp + project path with spaces: use `node-addon-api`'s
+  `.include_dir` (unquoted) with single-eval `<!(...)`, NOT `.include` with `<!@(...)`
+  — the latter splits on the space in "Learning Things" and breaks the include path.
+- (build) Build the addon against Electron headers with
+  `node-gyp rebuild --directory=native --target=<electron version>
+  --dist-url=https://electronjs.org/headers`.
+- (security) Current `npm audit` highs are all in the electron-forge build toolchain
+  (dev-only). Fix requires `npm audit fix --force` (breaking). Deferred — ask before
+  forcing.

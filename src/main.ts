@@ -1,11 +1,18 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import started from 'electron-squirrel-startup';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
 }
+
+// Load the native accessibility addon at runtime (Vite leaves .node external).
+const nativeRequire = createRequire(__filename);
+const accessibility = nativeRequire(
+  path.join(app.getAppPath(), 'native', 'build', 'Release', 'addon.node'),
+) as { isTrusted: () => boolean };
 
 const createWindow = () => {
   // Create the browser window.
@@ -33,7 +40,10 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.on('ready', () => {
+  console.log('[a11y] AXIsProcessTrusted =', accessibility.isTrusted());
+  createWindow();
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
