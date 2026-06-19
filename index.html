@@ -39,6 +39,17 @@
 
       <section id="main-view" hidden>
         <h1>VoiceOver Companion</h1>
+
+        <div class="tabs">
+          <button id="tab-inspector" type="button" class="tab is-active">
+            Inspector
+          </button>
+          <button id="tab-guide" type="button" class="tab">
+            VoiceOver keys
+          </button>
+        </div>
+
+        <div id="tab-inspector-panel" class="tab-panel">
         <p class="hint">
           Updates live as you move focus in another app (with the keyboard or
           VoiceOver). Press <kbd>&#8984;&#8679;A</kbd> to capture on demand.
@@ -74,6 +85,15 @@
             <p class="hint" id="element-empty">No element captured yet.</p>
           </dl>
         </details>
+        </div>
+
+        <div id="tab-guide-panel" class="tab-panel" hidden>
+          <p class="hint">
+            Common VoiceOver commands for testing. <strong>VO</strong> = Control +
+            Option.
+          </p>
+          <div id="guide"></div>
+        </div>
       </section>
     </main>
     <script type="module" src="/src/renderer.ts"></script>

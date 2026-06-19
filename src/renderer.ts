@@ -9,6 +9,7 @@
 import './index.css';
 import { describeAnnouncement } from './announce';
 import { detectIssues } from './issues';
+import { VOICEOVER_GUIDE } from './voiceover-guide';
 
 const loadingView = document.getElementById('loading-view');
 const permissionView = document.getElementById('permission-view');
@@ -20,6 +21,11 @@ const elementOutput = document.getElementById('element-output');
 const announcementText = document.getElementById('announcement-text');
 const announcementParts = document.getElementById('announcement-parts');
 const issuesList = document.getElementById('issues-list');
+const guideContainer = document.getElementById('guide');
+const tabInspector = document.getElementById('tab-inspector');
+const tabGuide = document.getElementById('tab-guide');
+const inspectorPanel = document.getElementById('tab-inspector-panel');
+const guidePanel = document.getElementById('tab-guide-panel');
 
 const allViews = [loadingView, permissionView, mainView];
 
@@ -128,6 +134,56 @@ function renderElement(data: FocusedElement): void {
   }
 }
 
+function renderGuide(): void {
+  if (!guideContainer) {
+    return;
+  }
+  guideContainer.innerHTML = '';
+  for (const category of VOICEOVER_GUIDE) {
+    const section = document.createElement('section');
+    section.className = 'guide-category';
+
+    const heading = document.createElement('h2');
+    heading.textContent = category.title;
+    section.appendChild(heading);
+
+    const list = document.createElement('dl');
+    list.className = 'guide-list';
+    for (const command of category.commands) {
+      const term = document.createElement('dt');
+      const tokens = command.keys.split(' + ');
+      tokens.forEach((token, index) => {
+        const key = document.createElement('kbd');
+        key.textContent = token;
+        term.appendChild(key);
+        if (index < tokens.length - 1) {
+          term.appendChild(document.createTextNode('+'));
+        }
+      });
+
+      const definition = document.createElement('dd');
+      definition.textContent = command.action;
+
+      list.appendChild(term);
+      list.appendChild(definition);
+    }
+    section.appendChild(list);
+    guideContainer.appendChild(section);
+  }
+}
+
+function selectTab(tab: 'inspector' | 'guide'): void {
+  const showInspector = tab === 'inspector';
+  if (inspectorPanel) {
+    inspectorPanel.hidden = !showInspector;
+  }
+  if (guidePanel) {
+    guidePanel.hidden = showInspector;
+  }
+  tabInspector?.classList.toggle('is-active', showInspector);
+  tabGuide?.classList.toggle('is-active', !showInspector);
+}
+
 async function refreshTrust(): Promise<void> {
   const trusted = await window.companion.isTrusted();
   console.log('[a11y] renderer isTrusted =', trusted);
@@ -147,8 +203,12 @@ captureButton?.addEventListener('click', async () => {
   renderElement(await window.companion.getFocusedElement());
 });
 
+tabInspector?.addEventListener('click', () => selectTab('inspector'));
+tabGuide?.addEventListener('click', () => selectTab('guide'));
+
 window.companion.onFocusedElement((data) => {
   renderElement(data);
 });
 
+renderGuide();
 void refreshTrust();

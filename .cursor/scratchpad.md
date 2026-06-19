@@ -213,7 +213,22 @@ requires sampling pixels (screenshot + color math) and is deferred to a later ph
 - Issues and the announcement breakdown link to the matching concept entry.
 - Success: Clicking "learn more" on an issue shows the relevant concept inline.
 
-> Milestone E: Just-in-time teaching tied to what the developer is actually doing.
+**Task 4.3 — VoiceOver driving guide / quick reference (ADDED 2026-06-19 by user request)**
+- Rationale: a big part of "reducing the barrier to real screen reader testing" is
+  knowing how to *operate* VoiceOver. Add a quick-reference of the common commands a
+  developer needs while testing: turn VO on/off, the VO modifier, basic navigation,
+  activating elements, the rotor, and jumping by headings/links/form controls/
+  landmarks.
+- Scope (v1): a STATIC, categorised cheat-sheet shown in its own section/view in the
+  panel (so it doesn't clutter the live inspector). Content data lives in a small TS
+  map so it's easy to extend. Accuracy of key combos must be verified.
+- Success: A "VoiceOver keys" section is reachable from the panel and lists the
+  common commands grouped by category, readable without leaving the app.
+- (Future, not v1) Contextual hints: surface the most relevant keys for the currently
+  focused element type.
+
+> Milestone E: Just-in-time teaching tied to what the developer is actually doing,
+> plus a quick reference for driving VoiceOver itself.
 
 ### Phase 5 — Polish & distribution (later)
 
@@ -239,9 +254,11 @@ where Accessibility permission persists across launches).
 - [x] 2.2 Render announcement in UI (VERIFIED by human 2026-06-19)
 - [x] ✅ MILESTONE C reached — developer can see, in plain language, what VO will likely say (2026-06-19)
 - [x] 3.1 Heuristic issue rules (+ tests) (awaiting human review)
-- [x] 3.2 Surface issues in UI (awaiting human verification)
+- [x] 3.2 Surface issues in UI (VERIFIED by human 2026-06-19)
+- [x] ✅ MILESTONE D reached — live, contextual issue flags for the focused element (2026-06-19)
 - [ ] 4.1 Concept knowledge base
 - [ ] 4.2 Wire learn-more into UI
+- [x] 4.3 VoiceOver driving guide / quick reference (awaiting human verification)
 - [ ] 5.1 Packaging / signing / notarization
 - [ ] 5.2 Onboarding & settings
 - [ ] 5.3 (Stretch) contrast checks
@@ -249,6 +266,26 @@ where Accessibility permission persists across launches).
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task 4.3 complete — awaiting human verification (2026-06-19)
+- New requirement from user: a guide for driving VoiceOver. Decisions captured via
+  questions — tab toggle UX, build now (before 4.1/4.2), essentials scope.
+- Built a STATIC, categorised cheat-sheet (4 categories, 16 commands: getting
+  started, reading, moving around, jump-by-type). Key combos verified against
+  Apple's VoiceOver guide + Deque/AppleVis (2026).
+- Files changed:
+  - `src/voiceover-guide.ts` — typed data (`VoCategory`/`VoCommand`) for the guide.
+  - `src/voiceover-guide.test.ts` — 4 structural tests (non-empty, essentials present).
+  - `index.html` — main view now has an "Inspector" / "VoiceOver keys" tab bar; the
+    existing inspector content moved under `#tab-inspector-panel`; new
+    `#tab-guide-panel` holds the guide.
+  - `src/renderer.ts` — `renderGuide()` builds the list from data, `selectTab()` +
+    listeners switch panels; guide rendered once on load.
+  - `src/index.css` — tab bar + guide list styling.
+- **Verified by Executor:** `npm test` → 30 passed (was 26); no lint errors.
+- **Needs human check (I can't see the GUI):** run `npm start`, grant the inspector
+  view, click the "VoiceOver keys" tab, and confirm the commands list reads sensibly
+  and switching back to "Inspector" still shows live focus + announcement + issues.
 
 ### Task 0.1 complete — awaiting human verification (2026-06-19)
 - Scaffolded with the official `electron-forge` Vite + TypeScript template (matches
