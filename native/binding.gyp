@@ -11,6 +11,7 @@
         [ "OS=='mac'", {
           "xcode_settings": {
             "CLANG_CXX_LANGUAGE_STANDARD": "c++17",
+            "CLANG_ENABLE_OBJC_ARC": "YES",
             "MACOSX_DEPLOYMENT_TARGET": "10.15"
           },
           "link_settings": {

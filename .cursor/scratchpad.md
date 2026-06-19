@@ -232,7 +232,7 @@ where Accessibility permission persists across launches).
 - [x] 0.4 Read focused element once (spike) (VERIFIED by human 2026-06-19)
 - [x] 0.5 Web/Electron target spike (`AXManualAccessibility`) (VERIFIED by human 2026-06-19)
 - [x] ✅ MILESTONE A reached — read focused web element in Chrome + Safari behind permission (2026-06-19)
-- [ ] 1.1 AXObserver live focus updates
+- [x] 1.1 AXObserver live focus updates (awaiting human verification)
 - [ ] 1.2 Non-focus-stealing panel window
 - [ ] 2.1 Announcement synthesizer (+ tests)
 - [ ] 2.2 Render announcement in UI
@@ -367,6 +367,29 @@ doesn't activate our app, so the frontmost app stays the one under test.) Rebuil
 
 > Milestone A (read focused web element in Chrome + Safari behind permission) reached
 > pending this human verification. De-risks the core of the project.
+
+### Task 1.1 complete — awaiting human verification (2026-06-19)
+- Native (`native/addon.mm`): added `startFocusTracking(cb)` / `stopFocusTracking()`.
+  Uses `AXObserver` on the frontmost app for `kAXFocusedUIElementChangedNotification`
+  + `kAXFocusedWindowChangedNotification`, run-loop source added to the main
+  `CFRunLoop`, results delivered to JS via `Napi::ThreadSafeFunction`
+  (NonBlockingCall). Re-attaches on app switch via
+  `NSWorkspaceDidActivateApplicationNotification`. Unlocks each app
+  (`AXManualAccessibility`) on attach. Enabled ObjC ARC in `binding.gyp` to manage
+  the workspace observer token.
+- Main (`src/main.ts`): starts tracking on `ready` (pushes to renderer via
+  `a11y:focusedElement`, the same channel the ⌘⇧A shortcut uses), stops on
+  `will-quit`. UI copy updated: "updates live …".
+- **Verified by Executor:** compiles/links/loads with all 4 exports; no lint errors.
+- **Needs human check (restart — Ctrl-C then `npm start`):**
+  1. With the Companion visible, switch to Chrome/Safari and Tab/arrow through
+     controls — the Companion should update **automatically** (no ⌘⇧A) within a
+     fraction of a second.
+  2. Switch between apps (e.g. Chrome → TextEdit) — it should follow the new app's
+     focus.
+- **Known caveat (fixed by Task 1.2):** when YOU click the Companion window it
+  becomes frontmost and will track *its own* focused element. The non-focus-stealing
+  panel in 1.2 resolves this.
 
 ### ⚠️ Heads-up for Planner: dependency vulnerabilities
 `npm audit` reports 30 vulns (26 high) — **all inside the electron-forge build

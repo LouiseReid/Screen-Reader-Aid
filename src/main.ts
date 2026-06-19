@@ -22,6 +22,8 @@ const accessibility = nativeRequire(
 ) as {
   isTrusted: () => boolean;
   getFocusedElement: () => Record<string, unknown>;
+  startFocusTracking: (callback: (element: Record<string, unknown>) => void) => boolean;
+  stopFocusTracking: () => boolean;
 };
 
 let mainWindow: BrowserWindow | null = null;
@@ -80,10 +82,16 @@ app.on('ready', () => {
   if (!registered) {
     console.warn('[a11y] Failed to register capture shortcut', CAPTURE_SHORTCUT);
   }
+
+  // Live tracking: push the focused element to the window as focus changes.
+  accessibility.startFocusTracking((element) => {
+    mainWindow?.webContents.send('a11y:focusedElement', element);
+  });
 });
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  accessibility.stopFocusTracking();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
