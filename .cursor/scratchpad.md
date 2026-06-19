@@ -233,8 +233,9 @@ where Accessibility permission persists across launches).
 - [x] 0.5 Web/Electron target spike (`AXManualAccessibility`) (VERIFIED by human 2026-06-19)
 - [x] ✅ MILESTONE A reached — read focused web element in Chrome + Safari behind permission (2026-06-19)
 - [x] 1.1 AXObserver live focus updates (VERIFIED by human 2026-06-19)
-- [x] 1.2 Non-focus-stealing panel window (awaiting human verification)
-- [ ] 2.1 Announcement synthesizer (+ tests)
+- [x] 1.2 Non-focus-stealing panel window (VERIFIED by human 2026-06-19)
+- [x] ✅ MILESTONE B reached — hands-off live focus mirroring that doesn't interfere with testing (2026-06-19)
+- [x] 2.1 Announcement synthesizer (+ tests) (awaiting human review)
 - [ ] 2.2 Render announcement in UI
 - [ ] 3.1 Heuristic issue rules (+ tests)
 - [ ] 3.2 Surface issues in UI
@@ -412,6 +413,21 @@ doesn't activate our app, so the frontmost app stays the one under test.) Rebuil
 
 > Milestone B (hands-off live focus mirroring that doesn't interfere with testing)
 > reached pending this human verification.
+
+### Task 2.1 complete — awaiting human review (2026-06-19)
+- Added Vitest (`npm test` → `vitest run`).
+- `src/announce.ts`: pure `describeAnnouncement(element): { utterance, parts }`.
+  Composes a plausible VoiceOver utterance in the order name → dimmed → role →
+  value/state (+ help hint), with a `parts` breakdown recording the source attribute
+  for each piece (for the 2.2 "why" panel). Handles button, link, text field/area,
+  checkbox, radio, heading (with level), image (alt), static text, disabled, and
+  no-name controls.
+- `src/announce.test.ts`: 12 tests covering all the above. **All pass.** No lint
+  errors. This task is fully Executor-verifiable (pure function, no GUI needed).
+- **Approximation choices (for human review):** phrasing/order is our convention,
+  not VoiceOver's real private output (e.g. "Submit, dimmed, button"; checkbox →
+  "checked"/"unchecked"; heading → "heading level N"). Flag if you'd prefer
+  different wording/order before 2.2 wires it into the UI.
 
 ### ⚠️ Heads-up for Planner: dependency vulnerabilities
 `npm audit` reports 30 vulns (26 high) — **all inside the electron-forge build
