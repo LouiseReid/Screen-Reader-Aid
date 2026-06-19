@@ -236,9 +236,10 @@ where Accessibility permission persists across launches).
 - [x] 1.2 Non-focus-stealing panel window (VERIFIED by human 2026-06-19)
 - [x] ✅ MILESTONE B reached — hands-off live focus mirroring that doesn't interfere with testing (2026-06-19)
 - [x] 2.1 Announcement synthesizer (+ tests) (awaiting human review)
-- [x] 2.2 Render announcement in UI (awaiting human verification)
-- [ ] 3.1 Heuristic issue rules (+ tests)
-- [ ] 3.2 Surface issues in UI
+- [x] 2.2 Render announcement in UI (VERIFIED by human 2026-06-19)
+- [x] ✅ MILESTONE C reached — developer can see, in plain language, what VO will likely say (2026-06-19)
+- [x] 3.1 Heuristic issue rules (+ tests) (awaiting human review)
+- [x] 3.2 Surface issues in UI (awaiting human verification)
 - [ ] 4.1 Concept knowledge base
 - [ ] 4.2 Wire learn-more into UI
 - [ ] 5.1 Packaging / signing / notarization
@@ -444,6 +445,35 @@ doesn't activate our app, so the frontmost app stays the one under test.) Rebuil
 
 > Milestone C (developer can see, in plain language, what VO will likely say) reached
 > pending this human verification.
+
+### Task 3.1 complete — awaiting human review (2026-06-19)
+- `src/issues.ts`: pure `detectIssues(element): Issue[]` (`{id, severity, message,
+  learnMoreId}`). Rules: missing image alt (error), missing control name for
+  button/link/checkbox/radio/popup/combobox (error), missing form-field label
+  (error), empty heading (warning), link text is a raw URL (warning), focus on a
+  generic container AXGroup/AXUnknown (warning), disabled-but-focusable (warning).
+  `learnMoreId`s map to Phase 4 concept content.
+- `src/issues.test.ts`: 14 tests, all pass (suite now 26 total). No lint errors.
+  Fully Executor-verifiable (pure functions).
+- **For human review:** rule set + severities + wording are my v1 choices. The
+  generic-container rule may occasionally false-positive (e.g. a legitimately
+  focusable scroll area). Flag any rules to add/remove/retune before 3.2 surfaces
+  them in the UI.
+
+### Task 3.2 complete — awaiting human verification (2026-06-19)
+- `index.html`: "Potential issues" section in the main view. `src/renderer.ts`:
+  `renderIssues()` runs `detectIssues()` on every focus update; shows a coloured
+  severity badge + message per issue, or "No issues detected for this element."
+  when clean. `src/index.css`: error (red) / warning (amber) / info (blue) styling.
+- **Verified by Executor:** 26/26 tests pass, no lint errors. Renderer-only →
+  Vite hot-reloads (no restart).
+- **Needs human check:** focus a known-bad control (e.g. an icon-only button with no
+  label, or an `<img>` with no alt) and confirm the matching issue appears live with
+  the right severity colour; focus a well-labelled control and confirm it shows
+  "No issues detected".
+
+> Milestone D (live, contextual issue flags for the focused element) reached pending
+> this human verification.
 
 ### ⚠️ Heads-up for Planner: dependency vulnerabilities
 `npm audit` reports 30 vulns (26 high) — **all inside the electron-forge build

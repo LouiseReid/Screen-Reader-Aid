@@ -8,6 +8,7 @@
 
 import './index.css';
 import { describeAnnouncement } from './announce';
+import { detectIssues } from './issues';
 
 const loadingView = document.getElementById('loading-view');
 const permissionView = document.getElementById('permission-view');
@@ -18,6 +19,7 @@ const captureButton = document.getElementById('capture');
 const elementOutput = document.getElementById('element-output');
 const announcementText = document.getElementById('announcement-text');
 const announcementParts = document.getElementById('announcement-parts');
+const issuesList = document.getElementById('issues-list');
 
 const allViews = [loadingView, permissionView, mainView];
 
@@ -60,8 +62,44 @@ function renderAnnouncement(data: FocusedElement): void {
   }
 }
 
+function renderIssues(data: FocusedElement): void {
+  if (!issuesList) {
+    return;
+  }
+  issuesList.innerHTML = '';
+
+  const issues = detectIssues(data);
+  if (issues.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'issue issue-none';
+    empty.textContent = data.error
+      ? '\u2014'
+      : 'No issues detected for this element.';
+    issuesList.appendChild(empty);
+    return;
+  }
+
+  for (const issue of issues) {
+    const item = document.createElement('li');
+    item.className = `issue issue-${issue.severity}`;
+
+    const badge = document.createElement('span');
+    badge.className = 'issue-badge';
+    badge.textContent = issue.severity;
+
+    const message = document.createElement('span');
+    message.className = 'issue-message';
+    message.textContent = issue.message;
+
+    item.appendChild(badge);
+    item.appendChild(message);
+    issuesList.appendChild(item);
+  }
+}
+
 function renderElement(data: FocusedElement): void {
   renderAnnouncement(data);
+  renderIssues(data);
 
   if (!elementOutput) {
     return;

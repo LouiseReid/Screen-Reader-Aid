@@ -124,6 +124,79 @@ kbd {
   color: #6e6e73;
 }
 
+.issues {
+  margin: 1rem 0;
+}
+
+.issues-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6e6e73;
+}
+
+.issues-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.issue {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.6rem;
+  border: 1px solid #e3e3e8;
+  background: #fafafa;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.issue-badge {
+  flex: none;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.35rem;
+  color: #fff;
+  margin-top: 0.1rem;
+}
+
+.issue-error {
+  border-color: #f3c2c2;
+  background: #fdf2f2;
+}
+
+.issue-error .issue-badge {
+  background: #d70015;
+}
+
+.issue-warning {
+  border-color: #f3e0b5;
+  background: #fdf8ec;
+}
+
+.issue-warning .issue-badge {
+  background: #b25000;
+}
+
+.issue-info .issue-badge {
+  background: #0071e3;
+}
+
+.issue-none {
+  color: #6e6e73;
+  border-style: dashed;
+}
+
 .element-output {
   display: grid;
   grid-template-columns: max-content 1fr;
