@@ -6,8 +6,43 @@
 
   </head>
   <body>
-    <h1>VoiceOver Companion</h1>
-    <p>Skeleton ready. Accessibility inspection coming in the next tasks.</p>
+    <main id="app">
+      <section id="loading-view">
+        <h1>VoiceOver Companion</h1>
+        <p>Checking accessibility permission&hellip;</p>
+      </section>
+
+      <section id="permission-view" hidden>
+        <h1>VoiceOver Companion</h1>
+        <p class="lede">
+          To show what VoiceOver announces, this app needs macOS
+          <strong>Accessibility</strong> permission.
+        </p>
+        <ol class="steps">
+          <li>Click <strong>Open Accessibility Settings</strong> below.</li>
+          <li>
+            Turn on <strong>VoiceOver Companion</strong> in the list (in dev mode
+            it appears as <strong>Electron</strong>).
+          </li>
+          <li>Come back here and click <strong>Re-check</strong>.</li>
+        </ol>
+        <div class="actions">
+          <button id="open-settings" type="button">
+            Open Accessibility Settings
+          </button>
+          <button id="recheck" type="button" class="secondary">Re-check</button>
+        </div>
+        <p class="hint">
+          If it doesn&rsquo;t switch right after granting, quit and relaunch the app.
+        </p>
+      </section>
+
+      <section id="main-view" hidden>
+        <h1>VoiceOver Companion</h1>
+        <p class="lede">Accessibility permission granted.</p>
+        <p>Focused-element inspection arrives in the next tasks.</p>
+      </section>
+    </main>
     <script type="module" src="/src/renderer.ts"></script>
   </body>
 </html>

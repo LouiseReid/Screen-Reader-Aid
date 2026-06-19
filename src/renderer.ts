@@ -4,30 +4,39 @@
  * Electron, visit:
  *
  * https://electronjs.org/docs/tutorial/process-model
- *
- * By default, Node.js integration in this file is disabled. When enabling Node.js integration
- * in a renderer process, please be aware of potential security implications. You can read
- * more about security risks here:
- *
- * https://electronjs.org/docs/tutorial/security
- *
- * To enable Node.js integration in this file, open up `main.ts` and enable the `nodeIntegration`
- * flag:
- *
- * ```
- *  // Create the browser window.
- *  mainWindow = new BrowserWindow({
- *    width: 800,
- *    height: 600,
- *    webPreferences: {
- *      nodeIntegration: true
- *    }
- *  });
- * ```
  */
 
 import './index.css';
 
-console.log(
-  '👋 This message is being logged by "renderer.ts", included via Vite',
-);
+const loadingView = document.getElementById('loading-view');
+const permissionView = document.getElementById('permission-view');
+const mainView = document.getElementById('main-view');
+const openSettingsButton = document.getElementById('open-settings');
+const recheckButton = document.getElementById('recheck');
+
+const allViews = [loadingView, permissionView, mainView];
+
+function show(view: HTMLElement | null): void {
+  for (const candidate of allViews) {
+    if (candidate) {
+      candidate.hidden = candidate !== view;
+    }
+  }
+}
+
+async function refreshTrust(): Promise<void> {
+  const trusted = await window.companion.isTrusted();
+  console.log('[a11y] renderer isTrusted =', trusted);
+  show(trusted ? mainView : permissionView);
+}
+
+openSettingsButton?.addEventListener('click', () => {
+  void window.companion.openAccessibilitySettings();
+});
+
+recheckButton?.addEventListener('click', () => {
+  show(loadingView);
+  void refreshTrust();
+});
+
+void refreshTrust();

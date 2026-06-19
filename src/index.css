@@ -5,4 +5,53 @@ body {
   margin: auto;
   max-width: 38rem;
   padding: 2rem;
+  color: #1d1d1f;
+}
+
+h1 {
+  margin-top: 0;
+}
+
+.lede {
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.steps {
+  line-height: 1.6;
+  padding-left: 1.25rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+button {
+  font: inherit;
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: #0071e3;
+  color: #fff;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0077ed;
+}
+
+button.secondary {
+  background: #e8e8ed;
+  color: #1d1d1f;
+}
+
+button.secondary:hover {
+  background: #dcdce1;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: #6e6e73;
 }

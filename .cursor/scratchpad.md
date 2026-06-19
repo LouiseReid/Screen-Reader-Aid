@@ -226,9 +226,9 @@ where Accessibility permission persists across launches).
 
 ## Project Status Board
 
-- [x] 0.1 Electron + TypeScript skeleton (awaiting human verification)
-- [x] 0.2 Native addon hello world (`AXIsProcessTrusted`) (awaiting human verification)
-- [ ] 0.3 Accessibility permission flow
+- [x] 0.1 Electron + TypeScript skeleton (VERIFIED by human 2026-06-19)
+- [x] 0.2 Native addon hello world (`AXIsProcessTrusted`) (VERIFIED by human 2026-06-19)
+- [x] 0.3 Accessibility permission flow (awaiting human verification)
 - [ ] 0.4 Read focused element once (spike)
 - [ ] 0.5 Web/Electron target spike (`AXManualAccessibility`)
 - [ ] 1.1 AXObserver live focus updates
@@ -288,6 +288,29 @@ proceed to Task 0.2 (native addon hello-world).
 - **Needs human check:** in a normal Terminal run `npm start`; the window should open
   and the terminal should print `[a11y] AXIsProcessTrusted = false` (it'll say
   `true` once you grant Accessibility permission in Task 0.3).
+
+### Task 0.3 complete — awaiting human verification (2026-06-19)
+- Main process (`src/main.ts`): added IPC handlers `a11y:isTrusted` (returns the
+  addon's `isTrusted()`) and `a11y:openSettings` (deep-links to System Settings >
+  Privacy & Security > Accessibility via `shell.openExternal`).
+- Preload (`src/preload.ts`): exposes a sandboxed `window.companion` API
+  (`isTrusted()`, `openAccessibilitySettings()`) via `contextBridge`.
+- Types (`src/global.d.ts`): declares `window.companion`.
+- UI (`index.html`, `src/renderer.ts`, `src/index.css`): three views —
+  loading → permission-needed (with "Open Accessibility Settings" + "Re-check"
+  buttons and step-by-step instructions) → granted/main view. On load it checks
+  trust and shows the right view; "Re-check" re-queries.
+- **Verified by Executor:** no lint/type errors across main/preload/renderer/types.
+  (GUI can't run in the agent sandbox — see lessons — so functional toggling is for
+  human verification.)
+- **Needs human check (IMPORTANT — restart required):** main + preload changes don't
+  hot-reload. In the terminal running `npm start`, type `rs` (or quit and re-run
+  `npm start`). Then:
+  1. With permission OFF you should see the "needs Accessibility permission" screen.
+  2. Click "Open Accessibility Settings" → System Settings opens to the right pane.
+  3. Enable the app (shows as "Electron" in dev), return, click "Re-check".
+  4. The view should switch to "Accessibility permission granted." (If not, quit +
+     relaunch — macOS sometimes only reflects the grant in a fresh process.)
 
 ### ⚠️ Heads-up for Planner: dependency vulnerabilities
 `npm audit` reports 30 vulns (26 high) — **all inside the electron-forge build

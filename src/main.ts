@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, systemPreferences } from 'electron';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import started from 'electron-squirrel-startup';
@@ -13,6 +13,18 @@ const nativeRequire = createRequire(__filename);
 const accessibility = nativeRequire(
   path.join(app.getAppPath(), 'native', 'build', 'Release', 'addon.node'),
 ) as { isTrusted: () => boolean };
+
+// Deep link to System Settings > Privacy & Security > Accessibility.
+const ACCESSIBILITY_SETTINGS_URL =
+  'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
+
+ipcMain.handle('a11y:isTrusted', () => accessibility.isTrusted());
+ipcMain.handle('a11y:openSettings', () => {
+  // Prompting registers this app in the Accessibility list (so the user has
+  // something to toggle) and shows the macOS system dialog.
+  systemPreferences.isTrustedAccessibilityClient(true);
+  return shell.openExternal(ACCESSIBILITY_SETTINGS_URL);
+});
 
 const createWindow = () => {
   // Create the browser window.
