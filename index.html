@@ -39,8 +39,20 @@
 
       <section id="main-view" hidden>
         <h1>VoiceOver Companion</h1>
-        <p class="lede">Accessibility permission granted.</p>
-        <p>Focused-element inspection arrives in the next tasks.</p>
+        <p class="lede">Focused element</p>
+        <p class="hint">
+          Focus an element in another app (e.g. a button or link in Safari or
+          Chrome), then press <kbd>&#8984;&#8679;A</kbd> to capture what it
+          exposes to accessibility.
+        </p>
+        <div class="actions">
+          <button id="capture" type="button" class="secondary">
+            Read this window&rsquo;s focused element
+          </button>
+        </div>
+        <dl id="element-output" class="element-output">
+          <p class="hint" id="element-empty">No element captured yet.</p>
+        </dl>
       </section>
     </main>
     <script type="module" src="/src/renderer.ts"></script>

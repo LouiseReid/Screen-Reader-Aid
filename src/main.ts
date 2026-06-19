@@ -1,4 +1,11 @@
-import { app, BrowserWindow, ipcMain, shell, systemPreferences } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  globalShortcut,
+  ipcMain,
+  shell,
+  systemPreferences,
+} from 'electron';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import started from 'electron-squirrel-startup';
@@ -12,13 +19,23 @@ if (started) {
 const nativeRequire = createRequire(__filename);
 const accessibility = nativeRequire(
   path.join(app.getAppPath(), 'native', 'build', 'Release', 'addon.node'),
-) as { isTrusted: () => boolean };
+) as {
+  isTrusted: () => boolean;
+  getFocusedElement: () => Record<string, unknown>;
+};
+
+let mainWindow: BrowserWindow | null = null;
+
+// Capturing via a global shortcut avoids stealing focus from the app under test
+// (clicking inside our window would make our own control the "focused element").
+const CAPTURE_SHORTCUT = 'CommandOrControl+Shift+A';
 
 // Deep link to System Settings > Privacy & Security > Accessibility.
 const ACCESSIBILITY_SETTINGS_URL =
   'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
 
 ipcMain.handle('a11y:isTrusted', () => accessibility.isTrusted());
+ipcMain.handle('a11y:getFocusedElement', () => accessibility.getFocusedElement());
 ipcMain.handle('a11y:openSettings', () => {
   // Prompting registers this app in the Accessibility list (so the user has
   // something to toggle) and shows the macOS system dialog.
@@ -28,7 +45,7 @@ ipcMain.handle('a11y:openSettings', () => {
 
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -55,6 +72,18 @@ const createWindow = () => {
 app.on('ready', () => {
   console.log('[a11y] AXIsProcessTrusted =', accessibility.isTrusted());
   createWindow();
+
+  const registered = globalShortcut.register(CAPTURE_SHORTCUT, () => {
+    const element = accessibility.getFocusedElement();
+    mainWindow?.webContents.send('a11y:focusedElement', element);
+  });
+  if (!registered) {
+    console.warn('[a11y] Failed to register capture shortcut', CAPTURE_SHORTCUT);
+  }
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

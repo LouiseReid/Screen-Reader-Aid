@@ -228,8 +228,8 @@ where Accessibility permission persists across launches).
 
 - [x] 0.1 Electron + TypeScript skeleton (VERIFIED by human 2026-06-19)
 - [x] 0.2 Native addon hello world (`AXIsProcessTrusted`) (VERIFIED by human 2026-06-19)
-- [x] 0.3 Accessibility permission flow (awaiting human verification)
-- [ ] 0.4 Read focused element once (spike)
+- [x] 0.3 Accessibility permission flow (VERIFIED by human 2026-06-19)
+- [x] 0.4 Read focused element once (spike) (awaiting human verification)
 - [ ] 0.5 Web/Electron target spike (`AXManualAccessibility`)
 - [ ] 1.1 AXObserver live focus updates
 - [ ] 1.2 Non-focus-stealing panel window
@@ -312,6 +312,31 @@ proceed to Task 0.2 (native addon hello-world).
   4. The view should switch to "Accessibility permission granted." (If not, quit +
      relaunch — macOS sometimes only reflects the grant in a fresh process.)
 
+### Task 0.4 complete — awaiting human verification (2026-06-19)
+- Native (`native/addon.mm`): added `getFocusedElement()` — reads the system-wide
+  `kAXFocusedUIElementAttribute` and returns role, subrole, roleDescription, title,
+  value, description, help, enabled, focused (CF→JS string/bool/number conversion,
+  graceful `{error}` when nothing is focused). Rebuilt OK; verified exports +
+  returns an object in headless Node.
+- Main: added IPC `a11y:getFocusedElement` and a **global shortcut ⌘⇧A** that reads
+  the focused element and pushes it to the renderer (`a11y:focusedElement`).
+- Preload: exposed `getFocusedElement()` + `onFocusedElement(cb)`. Types in
+  `global.d.ts` (`FocusedElement`). UI renders the attributes as a definition list.
+- **DEVIATION (flagged):** the plan said "Refresh button", but clicking inside our
+  window steals focus, so a button alone would only read our own control. I added
+  the ⌘⇧A global shortcut as the real capture path (button kept for reading our own
+  window). The proper non-focus-stealing panel is still Task 1.2. Please confirm
+  this approach is acceptable.
+- **Verified by Executor:** rebuild + addon load + no lint errors. (GUI behaviour is
+  for human verification — sandbox can't run the Electron GUI.)
+- **Needs human check (restart required — Ctrl-C then `npm start`):**
+  1. Focus a control in another app (Safari toolbar button, a TextEdit field, or a
+     button/link on a web page) and press **⌘⇧A**. The Companion should show that
+     element's role/title/value/etc.
+  2. Try a native control first (most reliable). **Safari** web elements should also
+     populate. **Chrome web page** elements may be sparse until Task 0.5 (which sets
+     `AXManualAccessibility` to unlock Chromium's tree) — that's expected.
+
 ### ⚠️ Heads-up for Planner: dependency vulnerabilities
 `npm audit` reports 30 vulns (26 high) — **all inside the electron-forge build
 toolchain** (`@electron-forge/*`, `tar`, `tmp`, `cacache`, `@inquirer/*`). These are
@@ -361,6 +386,17 @@ forced downgrade? Recommend leaving as-is until packaging (Phase 5).
 - (build) Build the addon against Electron headers with
   `node-gyp rebuild --directory=native --target=<electron version>
   --dist-url=https://electronjs.org/headers`.
+- (a11y permission, dev) `AXIsProcessTrusted()` is evaluated per-process and cached
+  for that process's lifetime — after granting, you MUST fully relaunch (Ctrl-C +
+  `npm start`); `rs`/"Re-check" in the same process keep returning false.
+- (a11y permission, dev) When launched from Cursor's integrated terminal, macOS
+  attributes the Accessibility grant to the PARENT app (Cursor), so **Cursor** also
+  needs Accessibility permission for the dev Electron child to be trusted. Once the
+  app is packaged (Phase 5) it's attributed to "VoiceOver Companion" directly.
+- (a11y permission, dev) Just *checking* `AXIsProcessTrusted()` does not add the app
+  to the Accessibility list; call `systemPreferences.isTrustedAccessibilityClient(true)`
+  to prompt + register it. System Settings also doesn't refresh the list live — quit
+  and reopen it to see new entries.
 - (security) Current `npm audit` highs are all in the electron-forge build toolchain
   (dev-only). Fix requires `npm audit fix --force` (breaking). Deferred — ask before
   forcing.
