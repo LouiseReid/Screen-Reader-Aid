@@ -236,7 +236,7 @@ where Accessibility permission persists across launches).
 - [x] 1.2 Non-focus-stealing panel window (VERIFIED by human 2026-06-19)
 - [x] ✅ MILESTONE B reached — hands-off live focus mirroring that doesn't interfere with testing (2026-06-19)
 - [x] 2.1 Announcement synthesizer (+ tests) (awaiting human review)
-- [ ] 2.2 Render announcement in UI
+- [x] 2.2 Render announcement in UI (awaiting human verification)
 - [ ] 3.1 Heuristic issue rules (+ tests)
 - [ ] 3.2 Surface issues in UI
 - [ ] 4.1 Concept knowledge base
@@ -428,6 +428,22 @@ doesn't activate our app, so the frontmost app stays the one under test.) Rebuil
   not VoiceOver's real private output (e.g. "Submit, dimmed, button"; checkbox →
   "checked"/"unchecked"; heading → "heading level N"). Flag if you'd prefer
   different wording/order before 2.2 wires it into the UI.
+
+### Task 2.2 complete — awaiting human verification (2026-06-19)
+- `index.html` main view: prominent announcement card ("VoiceOver will likely
+  announce" + big utterance), an approximation disclaimer, a collapsible "Why this
+  announcement?" (parts → source attribute), and the raw attributes moved into a
+  collapsible. Capture button relabelled "Capture now".
+- `src/renderer.ts`: imports `describeAnnouncement`, renders the utterance + parts on
+  every focus update (live). `src/index.css`: announcement card styling.
+- **Verified by Executor:** tests still 12/12, no lint errors. Renderer-only change →
+  Vite hot-reloads (no app restart needed).
+- **Needs human check:** focus elements in Chrome/Safari and watch the panel show a
+  sensible "VoiceOver will likely announce" line that updates live; expand "Why" to
+  see the attribute breakdown; expand "Raw accessibility attributes" for the source.
+
+> Milestone C (developer can see, in plain language, what VO will likely say) reached
+> pending this human verification.
 
 ### ⚠️ Heads-up for Planner: dependency vulnerabilities
 `npm audit` reports 30 vulns (26 high) — **all inside the electron-forge build

@@ -7,6 +7,7 @@
  */
 
 import './index.css';
+import { describeAnnouncement } from './announce';
 
 const loadingView = document.getElementById('loading-view');
 const permissionView = document.getElementById('permission-view');
@@ -15,6 +16,8 @@ const openSettingsButton = document.getElementById('open-settings');
 const recheckButton = document.getElementById('recheck');
 const captureButton = document.getElementById('capture');
 const elementOutput = document.getElementById('element-output');
+const announcementText = document.getElementById('announcement-text');
+const announcementParts = document.getElementById('announcement-parts');
 
 const allViews = [loadingView, permissionView, mainView];
 
@@ -39,7 +42,27 @@ function show(view: HTMLElement | null): void {
   }
 }
 
+function renderAnnouncement(data: FocusedElement): void {
+  const announcement = describeAnnouncement(data);
+  if (announcementText) {
+    announcementText.textContent = announcement.utterance || '\u2014';
+  }
+  if (announcementParts) {
+    announcementParts.innerHTML = '';
+    for (const part of announcement.parts) {
+      const term = document.createElement('dt');
+      term.textContent = part.text;
+      const definition = document.createElement('dd');
+      definition.textContent = part.source;
+      announcementParts.appendChild(term);
+      announcementParts.appendChild(definition);
+    }
+  }
+}
+
 function renderElement(data: FocusedElement): void {
+  renderAnnouncement(data);
+
   if (!elementOutput) {
     return;
   }
