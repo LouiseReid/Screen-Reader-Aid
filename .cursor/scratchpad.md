@@ -229,8 +229,9 @@ where Accessibility permission persists across launches).
 - [x] 0.1 Electron + TypeScript skeleton (VERIFIED by human 2026-06-19)
 - [x] 0.2 Native addon hello world (`AXIsProcessTrusted`) (VERIFIED by human 2026-06-19)
 - [x] 0.3 Accessibility permission flow (VERIFIED by human 2026-06-19)
-- [x] 0.4 Read focused element once (spike) (awaiting human verification)
-- [ ] 0.5 Web/Electron target spike (`AXManualAccessibility`)
+- [x] 0.4 Read focused element once (spike) (VERIFIED by human 2026-06-19)
+- [x] 0.5 Web/Electron target spike (`AXManualAccessibility`) (VERIFIED by human 2026-06-19)
+- [x] ✅ MILESTONE A reached — read focused web element in Chrome + Safari behind permission (2026-06-19)
 - [ ] 1.1 AXObserver live focus updates
 - [ ] 1.2 Non-focus-stealing panel window
 - [ ] 2.1 Announcement synthesizer (+ tests)
@@ -336,6 +337,36 @@ proceed to Task 0.2 (native addon hello-world).
   2. Try a native control first (most reliable). **Safari** web elements should also
      populate. **Chrome web page** elements may be sparse until Task 0.5 (which sets
      `AXManualAccessibility` to unlock Chromium's tree) — that's expected.
+
+### Task 0.5 complete — awaiting human verification (2026-06-19)
+- Native (`native/addon.mm`): in `getFocusedElement()` we now read the focused
+  element's owning PID (`AXUIElementGetPid`), create the app element
+  (`AXUIElementCreateApplication`), set `AXManualAccessibility` +
+  `AXEnhancedUserInterface` to `true` (unlocks Chromium/WebKit web AX trees;
+  harmless no-op on native apps), then re-fetch the focused element so the now-built
+  web tree is read. Added owning `pid` to the output (debug aid).
+- Types + UI updated to surface `pid`. Rebuilt addon OK; no lint errors.
+- **Verified by Executor:** compiles/links/loads. Web behaviour is for human check.
+- **Needs human check (restart required — Ctrl-C then `npm start`; the .node binary
+  reloads only on a fresh launch):**
+  1. Open a normal website in **Chrome**, click into a link/button/text field, press
+     **⌘⇧A**. You should now get meaningful values (e.g. role `AXButton`/`AXLink`,
+     a title/value) instead of the previous sparse/empty result.
+  2. First capture right after Chrome launches can still be sparse while the tree
+     builds — press **⌘⇧A** again and it should populate.
+  3. Compare with Safari to confirm both browsers work.
+
+**Fix during 0.5 testing (chicken-and-egg):** first attempt read the focused element
+to get the pid, but Chrome exposes NO focused element until unlocked → always "No
+focused element". Reworked to get the frontmost app via `NSWorkspace`
+(`frontmostApplication`) and unlock THAT pid before querying. (Global shortcut
+doesn't activate our app, so the frontmost app stays the one under test.) Rebuilt OK.
+- **Re-test (restart — Ctrl-C then `npm start`):** in Chrome, focus a link/button,
+  press ⌘⇧A; should now populate. First press after unlocking may still need a
+  second ⌘⇧A while the tree builds.
+
+> Milestone A (read focused web element in Chrome + Safari behind permission) reached
+> pending this human verification. De-risks the core of the project.
 
 ### ⚠️ Heads-up for Planner: dependency vulnerabilities
 `npm audit` reports 30 vulns (26 high) — **all inside the electron-forge build

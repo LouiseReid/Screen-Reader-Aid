@@ -28,6 +28,7 @@ const FIELDS: Array<[keyof FocusedElement, string]> = [
   ['help', 'Help'],
   ['enabled', 'Enabled'],
   ['focused', 'Focused'],
+  ['pid', 'App PID'],
 ];
 
 function show(view: HTMLElement | null): void {

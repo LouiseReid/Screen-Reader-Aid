@@ -11,6 +11,7 @@ declare global {
     help?: string | null;
     enabled?: string | number | boolean | null;
     focused?: string | number | boolean | null;
+    pid?: number;
     error?: string;
   }
 

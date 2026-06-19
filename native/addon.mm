@@ -1,5 +1,6 @@
 #include <napi.h>
 #include <string>
+#import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
 
 // Returns whether this process is currently trusted for the macOS
@@ -62,6 +63,32 @@ Napi::Value GetFocusedElement(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::Object out = Napi::Object::New(env);
 
+  // Unlock the frontmost app's accessibility tree FIRST. Chromium/WebKit
+  // (Chrome, Electron, Safari, etc.) do not expose a focused element at all
+  // until AXManualAccessibility / AXEnhancedUserInterface is set, so we cannot
+  // discover the pid by reading the focused element. Instead we get the
+  // frontmost app from NSWorkspace and unlock it before querying. Setting these
+  // attributes on a regular native app is a harmless no-op.
+  pid_t frontPid = 0;
+  @autoreleasepool {
+    NSRunningApplication* front =
+        [[NSWorkspace sharedWorkspace] frontmostApplication];
+    if (front != nil) {
+      frontPid = front.processIdentifier;
+    }
+  }
+  if (frontPid > 0) {
+    out.Set("pid", Napi::Number::New(env, frontPid));
+    AXUIElementRef appRef = AXUIElementCreateApplication(frontPid);
+    if (appRef != nullptr) {
+      AXUIElementSetAttributeValue(appRef, CFSTR("AXManualAccessibility"),
+                                   kCFBooleanTrue);
+      AXUIElementSetAttributeValue(appRef, CFSTR("AXEnhancedUserInterface"),
+                                   kCFBooleanTrue);
+      CFRelease(appRef);
+    }
+  }
+
   AXUIElementRef systemWide = AXUIElementCreateSystemWide();
   if (systemWide == nullptr) {
     out.Set("error",
@@ -75,7 +102,11 @@ Napi::Value GetFocusedElement(const Napi::CallbackInfo& info) {
   CFRelease(systemWide);
 
   if (err != kAXErrorSuccess || focused == nullptr) {
-    out.Set("error", Napi::String::New(env, "No focused element"));
+    out.Set("error",
+            Napi::String::New(
+                env,
+                "No focused element (if this is Chrome, the AX tree may still "
+                "be loading \u2014 press the shortcut again)"));
     return out;
   }
 
