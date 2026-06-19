@@ -9,6 +9,7 @@
 import './index.css';
 import { describeAnnouncement } from './announce';
 import { detectIssues } from './issues';
+import { suggestNextActions } from './next-actions';
 import { VOICEOVER_GUIDE } from './voiceover-guide';
 
 const loadingView = document.getElementById('loading-view');
@@ -21,6 +22,7 @@ const elementOutput = document.getElementById('element-output');
 const announcementText = document.getElementById('announcement-text');
 const announcementParts = document.getElementById('announcement-parts');
 const issuesList = document.getElementById('issues-list');
+const nextList = document.getElementById('next-list');
 const guideContainer = document.getElementById('guide');
 const tabInspector = document.getElementById('tab-inspector');
 const tabGuide = document.getElementById('tab-guide');
@@ -103,8 +105,52 @@ function renderIssues(data: FocusedElement): void {
   }
 }
 
+function renderNextActions(data: FocusedElement): void {
+  if (!nextList) {
+    return;
+  }
+  nextList.innerHTML = '';
+
+  const hints = suggestNextActions(data);
+  if (hints.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'next-empty';
+    empty.textContent = '\u2014';
+    nextList.appendChild(empty);
+    return;
+  }
+
+  for (const hint of hints) {
+    const item = document.createElement('li');
+    item.className = 'next-item';
+
+    if (hint.keys) {
+      const keys = document.createElement('span');
+      keys.className = 'next-keys';
+      const tokens = hint.keys.split(' + ');
+      tokens.forEach((token, index) => {
+        const key = document.createElement('kbd');
+        key.textContent = token;
+        keys.appendChild(key);
+        if (index < tokens.length - 1) {
+          keys.appendChild(document.createTextNode('+'));
+        }
+      });
+      item.appendChild(keys);
+    }
+
+    const action = document.createElement('span');
+    action.className = 'next-action';
+    action.textContent = hint.action;
+    item.appendChild(action);
+
+    nextList.appendChild(item);
+  }
+}
+
 function renderElement(data: FocusedElement): void {
   renderAnnouncement(data);
+  renderNextActions(data);
   renderIssues(data);
 
   if (!elementOutput) {

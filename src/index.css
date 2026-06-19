@@ -65,6 +65,53 @@ kbd {
   padding: 0.05rem 0.35rem;
 }
 
+.next {
+  margin: 1rem 0;
+}
+
+.next-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6e6e73;
+  margin: 0 0 0.5rem;
+}
+
+.next-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.next-item {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  background: #eef5ff;
+  border: 1px solid #d3e3fb;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+}
+
+.next-keys {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.next-action {
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: #1d1d1f;
+}
+
+.next-empty {
+  list-style: none;
+  color: #6e6e73;
+}
+
 .tabs {
   display: flex;
   gap: 0.25rem;

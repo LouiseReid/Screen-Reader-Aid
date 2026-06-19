@@ -224,8 +224,17 @@ requires sampling pixels (screenshot + color math) and is deferred to a later ph
   map so it's easy to extend. Accuracy of key combos must be verified.
 - Success: A "VoiceOver keys" section is reachable from the panel and lists the
   common commands grouped by category, readable without leaving the app.
-- (Future, not v1) Contextual hints: surface the most relevant keys for the currently
-  focused element type.
+**Task 4.4 — Contextual "what to do next" hints (ADDED 2026-06-19 by user request)**
+- Rationale: on top of the static cheat-sheet, the user wants a helper that looks at
+  where VO focus currently is and tells the dev what to do next with THAT element.
+- Scope: a pure function `suggestNextActions(element)` that maps the focused element's
+  role/state to the most relevant next VoiceOver command(s) (e.g. button -> VO+Space
+  to activate; heading -> VO+Command+H next heading; text field -> VO+Shift+Down to
+  interact; group/web area -> VO+Shift+Down to step inside; disabled -> note it's
+  dimmed). TDD with unit tests. Rendered as a "Try next" section in the Inspector
+  view, updating live with focus.
+- Success: focusing a button shows "VO+Space to activate"; focusing a heading shows
+  heading-jump hints; the list changes sensibly as focus moves.
 
 > Milestone E: Just-in-time teaching tied to what the developer is actually doing,
 > plus a quick reference for driving VoiceOver itself.
@@ -259,6 +268,7 @@ where Accessibility permission persists across launches).
 - [ ] 4.1 Concept knowledge base
 - [ ] 4.2 Wire learn-more into UI
 - [x] 4.3 VoiceOver driving guide / quick reference (awaiting human verification)
+- [x] 4.4 Contextual "what to do next" hints (awaiting human verification)
 - [ ] 5.1 Packaging / signing / notarization
 - [ ] 5.2 Onboarding & settings
 - [ ] 5.3 (Stretch) contrast checks
@@ -266,6 +276,23 @@ where Accessibility permission persists across launches).
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task 4.4 complete — awaiting human verification (2026-06-19)
+- User clarified the guide should also include a CONTEXTUAL helper: detect where VO
+  focus is and hint what to do next with that element. Built on top of 4.3.
+- Files changed:
+  - `src/next-actions.ts` — pure `suggestNextActions(element)` mapping role/state to
+    relevant next VoiceOver commands (button/link/checkbox/radio/text field/slider/
+    heading/image/static text/container roles + disabled note), de-duped by key, with
+    a universal "move next" + rotor fallback.
+  - `src/next-actions.test.ts` — 10 tests.
+  - `index.html` — new "Try next" section in the inspector view (above issues).
+  - `src/renderer.ts` — `renderNextActions()` renders the hints live per focus.
+  - `src/index.css` — "Try next" styling.
+- **Verified by Executor:** `npm test` → 40 passed (was 30); no lint errors.
+- **Needs human check (I can't see the GUI):** `npm start`, then move VO/keyboard
+  focus across different elements (a button, a link, a heading, a text field) and
+  confirm the "Try next" hints change sensibly for each.
 
 ### Task 4.3 complete — awaiting human verification (2026-06-19)
 - New requirement from user: a guide for driving VoiceOver. Decisions captured via
