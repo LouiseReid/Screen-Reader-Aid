@@ -265,8 +265,8 @@ where Accessibility permission persists across launches).
 - [x] 3.1 Heuristic issue rules (+ tests) (awaiting human review)
 - [x] 3.2 Surface issues in UI (VERIFIED by human 2026-06-19)
 - [x] ✅ MILESTONE D reached — live, contextual issue flags for the focused element (2026-06-19)
-- [x] 4.1 Concept knowledge base (awaiting human verification)
-- [x] 4.2 Wire learn-more into UI (awaiting human verification)
+- [x] 4.1 Concept knowledge base (VERIFIED by human 2026-06-23)
+- [x] 4.2 Wire learn-more into UI (VERIFIED by human 2026-06-23)
 - [x] 4.3 VoiceOver driving guide / quick reference (VERIFIED by human 2026-06-19)
 - [x] 4.4 Contextual "what to do next" hints (VERIFIED by human 2026-06-19)
 - [ ] 5.1 Packaging / signing / notarization

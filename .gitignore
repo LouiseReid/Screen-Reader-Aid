@@ -94,3 +94,5 @@ out/
 # Native addon build output
 native/build/
 
+# cursor
+.cursor/
