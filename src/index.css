@@ -301,6 +301,55 @@ kbd {
   border-style: dashed;
 }
 
+.issue-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.learn-more {
+  font-size: 0.82rem;
+}
+
+.learn-more > summary {
+  cursor: pointer;
+  color: #0071e3;
+  width: max-content;
+}
+
+.concept {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.concept-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.concept-section {
+  margin: 0;
+  line-height: 1.4;
+  color: #3a3a3c;
+}
+
+.concept-heading {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6e6e73;
+}
+
+.concept-section code,
+.concept-section {
+  overflow-wrap: anywhere;
+}
+
 .element-output {
   display: grid;
   grid-template-columns: max-content 1fr;

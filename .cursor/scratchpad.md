@@ -265,10 +265,10 @@ where Accessibility permission persists across launches).
 - [x] 3.1 Heuristic issue rules (+ tests) (awaiting human review)
 - [x] 3.2 Surface issues in UI (VERIFIED by human 2026-06-19)
 - [x] ✅ MILESTONE D reached — live, contextual issue flags for the focused element (2026-06-19)
-- [ ] 4.1 Concept knowledge base
-- [ ] 4.2 Wire learn-more into UI
-- [x] 4.3 VoiceOver driving guide / quick reference (awaiting human verification)
-- [x] 4.4 Contextual "what to do next" hints (awaiting human verification)
+- [x] 4.1 Concept knowledge base (awaiting human verification)
+- [x] 4.2 Wire learn-more into UI (awaiting human verification)
+- [x] 4.3 VoiceOver driving guide / quick reference (VERIFIED by human 2026-06-19)
+- [x] 4.4 Contextual "what to do next" hints (VERIFIED by human 2026-06-19)
 - [ ] 5.1 Packaging / signing / notarization
 - [ ] 5.2 Onboarding & settings
 - [ ] 5.3 (Stretch) contrast checks
@@ -276,6 +276,40 @@ where Accessibility permission persists across launches).
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task 4.2 complete — awaiting human verification (2026-06-19)
+- Wired the concept knowledge base (4.1) into the issues UI.
+- Files changed (renderer + CSS only; no pure-logic changes):
+  - `src/renderer.ts` — `renderIssues` now wraps the message in an `.issue-body` and,
+    when `getConcept(issue.learnMoreId)` resolves, appends a collapsible "Learn more"
+    (`<details>`) showing the concept's title + what-it-is / why-it-matters /
+    how-to-fix. Added `buildConceptDetails(concept)` helper.
+  - `src/index.css` — styling for `.issue-body`, `.learn-more`, and `.concept*`.
+- Scope decision: the plan also mentioned linking the ANNOUNCEMENT breakdown to
+  concepts, but announcement parts carry attribute `source` strings (e.g. "name
+  (title)"), not concept ids, so there is no clean 1:1 mapping. I scoped 4.2 to the
+  issues (which is the stated success criterion). Flagging for Planner: if we want
+  announcement-part learn-more too, that needs a small mapping layer (could be a
+  follow-up task).
+- **Verified by Executor:** `npm test` → 43 passed; no lint errors.
+- **Needs human check (GUI):** `npm start`, focus a known-bad control (e.g. an
+  unlabeled icon button or an image with no alt), then click "Learn more" under the
+  issue and confirm the explanation expands inline and reads sensibly.
+
+### Task 4.1 complete — awaiting human verification (2026-06-19)
+- Scope kept minimal/contained: this task is the CONTENT + lookup only; wiring into
+  the UI is Task 4.2.
+- Files added:
+  - `src/concepts.ts` — `Concept` type + `CONCEPTS` map keyed by the exact
+    `learnMoreId`s issues already emit (image-alt, control-name, field-label,
+    empty-heading, link-text, generic-role, disabled-focus). Each has title +
+    what-it-is / why-it-matters / how-to-fix (HTML+ARIA). Exposed via `getConcept(id)`.
+  - `src/concepts.test.ts` — 3 tests, incl. one asserting every issue learnMoreId
+    resolves to a concept (guards against future drift).
+- **Verified by Executor:** `npm test` → 43 passed (was 40); no lint errors. No UI or
+  runtime wiring touched, so no GUI regression risk.
+- **Note for human:** nothing visible in the app changes yet — that happens in 4.2
+  (clicking "learn more" on an issue shows the matching concept inline).
 
 ### Task 4.4 complete — awaiting human verification (2026-06-19)
 - User clarified the guide should also include a CONTEXTUAL helper: detect where VO

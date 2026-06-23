@@ -9,6 +9,7 @@
 import './index.css';
 import { describeAnnouncement } from './announce';
 import { detectIssues } from './issues';
+import { getConcept, type Concept } from './concepts';
 import { suggestNextActions } from './next-actions';
 import { VOICEOVER_GUIDE } from './voiceover-guide';
 
@@ -70,6 +71,42 @@ function renderAnnouncement(data: FocusedElement): void {
   }
 }
 
+function buildConceptDetails(concept: Concept): HTMLDetailsElement {
+  const details = document.createElement('details');
+  details.className = 'learn-more';
+
+  const summary = document.createElement('summary');
+  summary.textContent = 'Learn more';
+  details.appendChild(summary);
+
+  const body = document.createElement('div');
+  body.className = 'concept';
+
+  const title = document.createElement('p');
+  title.className = 'concept-title';
+  title.textContent = concept.title;
+  body.appendChild(title);
+
+  const sections: Array<[string, string]> = [
+    ['What it is', concept.whatItIs],
+    ['Why it matters', concept.whyItMatters],
+    ['How to fix', concept.howToFix],
+  ];
+  for (const [label, text] of sections) {
+    const para = document.createElement('p');
+    para.className = 'concept-section';
+    const heading = document.createElement('span');
+    heading.className = 'concept-heading';
+    heading.textContent = label;
+    para.appendChild(heading);
+    para.appendChild(document.createTextNode(text));
+    body.appendChild(para);
+  }
+
+  details.appendChild(body);
+  return details;
+}
+
 function renderIssues(data: FocusedElement): void {
   if (!issuesList) {
     return;
@@ -95,12 +132,21 @@ function renderIssues(data: FocusedElement): void {
     badge.className = 'issue-badge';
     badge.textContent = issue.severity;
 
+    const body = document.createElement('div');
+    body.className = 'issue-body';
+
     const message = document.createElement('span');
     message.className = 'issue-message';
     message.textContent = issue.message;
+    body.appendChild(message);
+
+    const concept = getConcept(issue.learnMoreId);
+    if (concept) {
+      body.appendChild(buildConceptDetails(concept));
+    }
 
     item.appendChild(badge);
-    item.appendChild(message);
+    item.appendChild(body);
     issuesList.appendChild(item);
   }
 }
