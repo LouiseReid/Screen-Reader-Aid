@@ -46,8 +46,6 @@ ipcMain.handle('a11y:openSettings', () => {
 });
 
 const createWindow = () => {
-  // A non-activating floating panel: it stays above other apps but never becomes
-  // the active app, so inspecting it doesn't change the focused element we track.
   mainWindow = new BrowserWindow({
     width: 420,
     height: 640,
@@ -62,7 +60,6 @@ const createWindow = () => {
 
   mainWindow.setAlwaysOnTop(true, 'floating');
 
-  // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
@@ -77,9 +74,6 @@ const createWindow = () => {
   });
 };
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
 app.on('ready', () => {
   console.log('[a11y] AXIsProcessTrusted =', accessibility.isTrusted());
   createWindow();
@@ -120,5 +114,3 @@ app.on('activate', () => {
   }
 });
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.

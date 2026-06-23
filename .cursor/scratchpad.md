@@ -239,12 +239,176 @@ requires sampling pixels (screenshot + color math) and is deferred to a later ph
 > Milestone E: Just-in-time teaching tied to what the developer is actually doing,
 > plus a quick reference for driving VoiceOver itself.
 
-### Phase 5 — Polish & distribution (later)
+### Phase 5 — Polish & distribution
 
-**Task 5.1 — Packaging, signing, notarization** (success: installable signed `.app`
-where Accessibility permission persists across launches).
-**Task 5.2 — Onboarding & settings** (toggle live tracking, pin/unpin, opacity).
-**Task 5.3 — (Stretch) contrast checks via screen sampling.**
+> Re-planned 2026-06-23 with execution order **5.2 → 5.1 → 5.3** (per user). 5.2 ships
+> the most user-facing value and doesn't require an Apple Developer account; 5.1 needs
+> credentials/decisions from the human; 5.3 is a stretch and needs a second OS
+> permission, so it sits last.
+
+#### Phase 5.2 — Onboarding & settings (PRIORITY — execute next)
+
+Original brief: "toggle live tracking, pin/unpin, opacity". The app today has no
+settings infrastructure at all, so the work splits into a tiny foundation + each
+toggle + a first-run onboarding flow. Sub-tasks are intentionally small and each one
+should be reviewed by the human before moving on.
+
+**Task 5.2.1 — Settings persistence layer (foundation, no UI)**
+- Add `electron-store` (de-facto Electron choice, JSON in `app.getPath('userData')`).
+- Define a `Settings` type with sensible defaults:
+  `{ liveTracking: true, pinned: true, opacity: 1, captureShortcut: 'CommandOrControl+Shift+A', hasOnboarded: false }`.
+- Main process: `settings:get` / `settings:set` IPC handlers.
+- Preload: expose `window.companion.settings.{get(), set(partial), onChange(cb)}`.
+- Types in `src/global.d.ts`.
+- Success criteria:
+  - `npm test` still green; add a small unit test for the default-merging helper
+    (pure function, no Electron needed).
+  - Manual: from the renderer console (after wiring a temporary call), `await
+    window.companion.settings.get()` returns the defaults on first run, and a
+    `set({ opacity: 0.8 })` value survives an app restart.
+
+**Task 5.2.2 — Wire each setting into runtime behaviour (no UI yet)**
+- `liveTracking`: when toggled false, call existing native `stopFocusTracking()`;
+  when true, `startFocusTracking()`. `⌘⇧A` shortcut keeps working either way.
+- `pinned`: `mainWindow.setAlwaysOnTop(value, 'floating')`.
+- `opacity`: clamp 0.3–1.0, `mainWindow.setOpacity(value)`.
+- `captureShortcut`: on change, `globalShortcut.unregister(old)` then `register(new)`;
+  validate via `globalShortcut.isRegistered()` and revert if it fails.
+- Apply current settings on startup (after window create + tracker start).
+- Success criteria:
+  - With temporary IPC calls from devtools (or a debug button), each setting visibly
+    changes behaviour at runtime.
+  - Toggling `liveTracking` off then on does NOT crash or leak observers (re-attach
+    works — already proven in 1.1).
+
+**Task 5.2.3 — Settings UI (third tab)**
+- Add a third tab "Settings" to the existing tab bar (sits next to Inspector /
+  VoiceOver keys — keeps the panel compact, no separate window).
+- Controls:
+  - Live tracking — checkbox
+  - Always on top (pin) — checkbox
+  - Opacity — range slider 30–100% with live preview
+  - Capture shortcut — read-only display of the current combo (v1; capture/edit can
+    be a follow-up if we want it)
+  - "Reset to defaults" button
+- All controls keyboard-accessible and labelled (we're an a11y app — must walk the
+  walk).
+- Success criteria:
+  - Changes in the UI apply immediately and persist across restart.
+  - Tabbing through the settings tab reads sensible labels in VoiceOver (manual
+    human check).
+
+**Task 5.2.4 — First-run onboarding**
+- Triggered when `settings.hasOnboarded === false`. Lightweight 3-step flow inside
+  the existing window (NOT a separate window):
+  1. **Welcome** — one paragraph: what this is (live AX co-pilot for web + VO),
+     scope (web apps, not native), the "approximation" caveat.
+  2. **Permission** — reuses the existing permission view's content/buttons.
+  3. **How to use** — capture shortcut, the 3 tabs, that focus updates live.
+- "Get started" on step 3 sets `hasOnboarded = true` and shows the inspector.
+- Success criteria:
+  - Wiping `userData` or setting `hasOnboarded=false` triggers the flow on next
+    launch; clicking through ends at the inspector.
+  - Subsequent launches go straight to the inspector (or the permission view if
+    permission is still missing).
+
+**Task 5.2.5 — "Help" entry to re-open onboarding**
+- Tiny `?` button in the panel header → re-runs the onboarding flow (sets
+  `hasOnboarded=false` for that session, navigates to step 1; on completion, sets
+  back to true).
+- Success: clicking `?` re-shows the onboarding at any time.
+
+> Milestone F (Phase 5.2 done): users can customise the panel (live tracking,
+> alwaysOnTop, opacity), settings persist, and first-time users get a short guided
+> intro.
+
+#### Phase 5.1 — Packaging, signing, notarization
+
+Path selection up front, then small sub-tasks. **Default plan = Path C** (Developer
+ID signed + notarized). If no Apple Developer account is available, Path B (ad-hoc
+local signing) reuses the same sub-tasks with different credentials — just no
+notarization step and no Gatekeeper-clean distribution.
+
+**Task 5.1.0 — Decide path + collect credentials (PLANNER GATE — human input)**
+- Confirm Path B vs Path C. If C: Apple Developer Team ID, Developer ID Application
+  certificate installed in Keychain, app-specific password for `notarytool`, Apple
+  ID email.
+- Decide bundle identifier (proposal: `com.louisereid.voiceovercompanion`), product
+  name (proposal: "VoiceOver Companion"), distribution artefact (proposal: DMG +
+  ZIP), architectures (proposal: arm64 + x64 universal).
+- Success: a short decision block recorded in the scratchpad before any 5.1.x work
+  starts.
+
+**Task 5.1.1 — App identity polish**
+- Set `productName`, `appBundleId`, `appCategoryType` in `forge.config.ts`.
+- Add an `.icns` icon under `build/icon.icns` (placeholder generated from text logo
+  is fine for v1).
+- Success: `Electron.app` resource shows the right name/icon in Finder/Dock after
+  `npm run package`.
+
+**Task 5.1.2 — Configure forge makers + osxSign / osxNotarize**
+- Add `@electron-forge/maker-dmg` (already have ZIP from the template).
+- `osxSign` config: identity from `process.env.APPLE_IDENTITY` (or auto-detect on
+  Path B/ad-hoc).
+- `osxNotarize` config (Path C only): `tool: 'notarytool'` with `appleId`,
+  `appleIdPassword`, `teamId` from env. Path B: omit notarize entirely.
+- `.env.example` committed; real `.env` gitignored.
+- Success: `npm run make` produces `out/make/...dmg` (and `.zip`); for Path C, the
+  output is also notarized + stapled.
+
+**Task 5.1.3 — Verify nested binaries are signed**
+- The native `.node` addon must be signed too. electron-forge + `@electron/osx-sign`
+  do this with deep signing by default; verify with
+  `codesign --verify --deep --strict --verbose=2 out/.../VoiceOver\ Companion.app`.
+- Success: command exits 0; `spctl -a -t exec -vv` (Path C) reports
+  "accepted source=Notarized Developer ID".
+
+**Task 5.1.4 — Accessibility-grant persistence test**
+- Install signed `.app` to `/Applications`, launch, grant Accessibility once, kill,
+  re-launch — grant should persist. Then rebuild + reinstall same version — grant
+  should still persist (same bundle id + same signature → same identity to TCC).
+- Success: AXIsProcessTrusted logs `true` after the rebuild without re-granting.
+
+**Task 5.1.5 — Audit / dependency cleanup (revisit deferred work)**
+- Revisit the deferred `npm audit` issue (electron-forge toolchain highs). Now that
+  we're actually shipping, decide: tolerate (dev-only deps), forced downgrade, or
+  upgrade path. Document decision.
+- Success: documented decision + (if any) the chosen remediation applied without
+  breaking `npm run make`.
+
+> Milestone G (Phase 5.1 done): a `.dmg` you can hand to another macOS user,
+> Accessibility grant persists across rebuilds, dependency hygiene reviewed.
+
+#### Phase 5.3 — Contrast checks (stretch)
+
+**Task 5.3.1 — Screen Recording permission flow**
+- New native helpers: `screenRecordingTrusted()` (`CGPreflightScreenCaptureAccess`)
+  and `requestScreenRecording()` (`CGRequestScreenCaptureAccess`). New permission
+  view in renderer (parallel to Accessibility permission view).
+- Success: with permission off, the contrast feature shows a permission prompt; with
+  it on, the contrast UI activates.
+
+**Task 5.3.2 — Native region screenshot**
+- `captureElementRegion(x, y, w, h) → PNG Buffer` using `CGWindowListCreateImage` at
+  the focused element's reported AX bounds.
+- Success: returns a non-empty buffer; written to a temp `.png` it visually matches
+  the focused element area.
+
+**Task 5.3.3 — Color sampling + WCAG contrast (pure TS, TDD)**
+- `analyzeContrast(pngBuffer) → { fg, bg, ratio, passes: { AA, AAA, AAlarge } }`.
+  v1 simplified: dominant background = most-common edge color; foreground = most
+  contrasting cluster vs background. Use standard WCAG luminance formula.
+- TDD with small fixture PNGs (black-on-white, mid-grey-on-white, etc.).
+- Success: unit tests pass on the fixtures; ratios match a manual calculator within
+  ±0.1.
+
+**Task 5.3.4 — Surface contrast in the Inspector**
+- For elements with valid bounds (skip when missing), show a "Contrast" row with
+  the ratio + AA/AAA badge. Hidden / N/A otherwise.
+- Success: focusing a text element shows a sensible ratio + pass/fail that updates
+  live with focus.
+
+> Milestone H (Phase 5.3 done, stretch): contrast feedback on the focused element.
 
 ---
 
@@ -269,13 +433,42 @@ where Accessibility permission persists across launches).
 - [x] 4.2 Wire learn-more into UI (VERIFIED by human 2026-06-23)
 - [x] 4.3 VoiceOver driving guide / quick reference (VERIFIED by human 2026-06-19)
 - [x] 4.4 Contextual "what to do next" hints (VERIFIED by human 2026-06-19)
+- [ ] **5.2 Onboarding & settings (PRIORITY — next up)**
+  - [ ] 5.2.1 Settings persistence layer (electron-store + IPC + preload + types)
+  - [ ] 5.2.2 Wire settings into runtime behaviour (tracking / pin / opacity / shortcut)
+  - [ ] 5.2.3 Settings UI (third tab)
+  - [ ] 5.2.4 First-run onboarding (3-step in-window flow)
+  - [ ] 5.2.5 "Help" entry to re-open onboarding
 - [ ] 5.1 Packaging / signing / notarization
-- [ ] 5.2 Onboarding & settings
+  - [ ] 5.1.0 Decide path (B ad-hoc vs C Developer ID) + collect credentials — HUMAN GATE
+  - [ ] 5.1.1 App identity polish (productName, bundleId, icns)
+  - [ ] 5.1.2 Configure forge makers + osxSign / osxNotarize
+  - [ ] 5.1.3 Verify nested binaries are signed (native .node)
+  - [ ] 5.1.4 Accessibility-grant persistence test across rebuild
+  - [ ] 5.1.5 Audit / dependency cleanup decision
 - [ ] 5.3 (Stretch) contrast checks
+  - [ ] 5.3.1 Screen Recording permission flow
+  - [ ] 5.3.2 Native region screenshot (CGWindowListCreateImage)
+  - [ ] 5.3.3 Color sampling + WCAG contrast (pure TS, TDD)
+  - [ ] 5.3.4 Surface contrast in Inspector
 
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Planner note — Phase 5 re-planned, ready to execute 5.2.1 (2026-06-23)
+- Execution order locked with human: **5.2 → 5.1 → 5.3**.
+- 5.2 is broken into 5 small sub-tasks; each one stops for human verification before
+  the next (per working agreement).
+- 5.1 is gated on **Task 5.1.0** (decide Path B vs Path C, collect Apple Developer
+  credentials). Do NOT start 5.1.x until that gate is cleared.
+- 5.3 (contrast) stays a stretch and needs a SECOND OS permission (Screen Recording)
+  — not Accessibility.
+- **Next executable task: 5.2.1 (Settings persistence layer).** Adds `electron-store`,
+  defines the `Settings` shape + defaults, adds `settings:get`/`settings:set` IPC,
+  exposes `window.companion.settings` from preload, types in `global.d.ts`, plus a
+  small unit test for the default-merging helper. NO UI changes yet — that's 5.2.3.
+  Wait for human "proceed" before starting.
 
 ### Task 4.2 complete — awaiting human verification (2026-06-19)
 - Wired the concept knowledge base (4.1) into the issues UI.
