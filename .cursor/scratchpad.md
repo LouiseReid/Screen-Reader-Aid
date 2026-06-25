@@ -519,7 +519,7 @@ notarization step and no Gatekeeper-clean distribution.
   - [x] 5.2.2 Wire settings into runtime behaviour (tracking / pin / opacity / shortcut) — VERIFIED by human 2026-06-25
   - [x] 5.2.3 Settings UI (third tab) — code done, awaiting human verification (2026-06-25)
   - [x] 5.2.4 First-run onboarding (3-step in-window flow) — code done, awaiting human verification (2026-06-25)
-  - [ ] 5.2.5 "Help" entry to re-open onboarding
+  - [x] 5.2.5 "Help" entry to re-open onboarding — code done, awaiting human verification (2026-06-25)
 - [ ] 5.1 Packaging / signing / notarization
   - [x] 5.1.0 Decide path — **Path C** chosen; bundle id/name/arch locked; cert NOT yet present (2026-06-25)
   - [x] 5.1.1 App identity polish (bundleId + category + icon) (VERIFIED by human 2026-06-25 — launch + icon)
@@ -537,6 +537,35 @@ notarization step and no Gatekeeper-clean distribution.
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task 5.2.5 complete — awaiting human verification (2026-06-25)
+**Scope:** an in-app entry to re-open the onboarding flow on demand.
+
+**Decision:** put it in the **Settings tab** as a "Show welcome guide" button rather than
+a native macOS Help menu. The panel window is `focusable:false` / `type:'panel'`, so a
+native menu would be awkward and easy to miss; an in-window control sits right next to
+"Reset to defaults" and is discoverable.
+
+**Files changed:**
+- `index.html` — added `#show-onboarding` ("Show welcome guide") button in the Settings
+  tab's `.settings-actions` row next to Reset.
+- `src/index.css` — made `.settings-actions` a wrapping flex row so the two buttons lay
+  out with a gap.
+- `src/renderer.ts` — looked up `#show-onboarding`; on click calls the existing
+  `startOnboarding()` (resets the perm-status line, jumps to step 1, shows the
+  onboarding view). Does NOT change `hasOnboarded` — it's just a re-read; clicking
+  "Get started" at the end re-affirms `hasOnboarded:true` and returns to the Inspector.
+
+**Verified by Executor:** `npm test` → 64 passed; no lint/type errors.
+
+**Needs human check (restart `npm start`):**
+1. Settings tab now shows a **Show welcome guide** button beside Reset to defaults.
+2. Clicking it opens onboarding at step 1; stepping through to **Get started** returns to
+   the Inspector.
+3. This works repeatably (open guide → finish → open again).
+4. (a11y) The new button is reachable/labelled under VoiceOver.
+
+This completes the **5.2 Onboarding & settings** group (5.2.1–5.2.5) pending your check.
 
 ### Task 5.2.4 complete — awaiting human verification (2026-06-25)
 **Scope:** first-run 3-step onboarding inside the existing window (no new window).

@@ -51,6 +51,7 @@ const opacityInput = document.getElementById(
 ) as HTMLInputElement | null;
 const opacityValue = document.getElementById('set-opacity-value');
 const resetButton = document.getElementById('set-reset');
+const showOnboardingButton = document.getElementById('show-onboarding');
 
 const allViews = [loadingView, permissionView, mainView, onboardingView];
 
@@ -400,6 +401,10 @@ resetButton?.addEventListener('click', () => {
     pinned: true,
     opacity: 1,
   });
+});
+
+showOnboardingButton?.addEventListener('click', () => {
+  startOnboarding();
 });
 
 onboardingView?.addEventListener('click', (event) => {
