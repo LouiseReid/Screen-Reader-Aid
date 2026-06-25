@@ -1,6 +1,10 @@
+import type { Settings as SettingsType } from './settings';
+
 export {};
 
 declare global {
+  type Settings = SettingsType;
+
   interface FocusedElement {
     role?: string | null;
     subrole?: string | null;
@@ -15,11 +19,18 @@ declare global {
     error?: string;
   }
 
+  interface CompanionSettingsApi {
+    get: () => Promise<Settings>;
+    set: (partial: Partial<Settings>) => Promise<Settings>;
+    onChange: (callback: (settings: Settings) => void) => () => void;
+  }
+
   interface CompanionApi {
     isTrusted: () => Promise<boolean>;
     openAccessibilitySettings: () => Promise<void>;
     getFocusedElement: () => Promise<FocusedElement>;
     onFocusedElement: (callback: (data: FocusedElement) => void) => () => void;
+    settings: CompanionSettingsApi;
   }
 
   interface Window {

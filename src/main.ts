@@ -9,6 +9,7 @@ import {
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import started from 'electron-squirrel-startup';
+import { SettingsStore } from './settings';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -27,6 +28,7 @@ const accessibility = nativeRequire(
 };
 
 let mainWindow: BrowserWindow | null = null;
+let settingsStore: SettingsStore | null = null;
 
 // Capturing via a global shortcut avoids stealing focus from the app under test
 // (clicking inside our window would make our own control the "focused element").
@@ -74,8 +76,23 @@ const createWindow = () => {
   });
 };
 
-app.on('ready', () => {
+app.on('ready', async () => {
   console.log('[a11y] AXIsProcessTrusted =', accessibility.isTrusted());
+
+  settingsStore = new SettingsStore(
+    path.join(app.getPath('userData'), 'settings.json'),
+  );
+  await settingsStore.load();
+  ipcMain.handle('settings:get', () => settingsStore?.get());
+  ipcMain.handle('settings:set', (_event, partial: Partial<Settings>) =>
+    settingsStore?.set(partial ?? {}),
+  );
+  settingsStore.subscribe((next) => {
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send('settings:changed', next);
+    }
+  });
+
   createWindow();
 
   const registered = globalShortcut.register(CAPTURE_SHORTCUT, () => {

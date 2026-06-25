@@ -433,8 +433,8 @@ notarization step and no Gatekeeper-clean distribution.
 - [x] 4.2 Wire learn-more into UI (VERIFIED by human 2026-06-23)
 - [x] 4.3 VoiceOver driving guide / quick reference (VERIFIED by human 2026-06-19)
 - [x] 4.4 Contextual "what to do next" hints (VERIFIED by human 2026-06-19)
-- [ ] **5.2 Onboarding & settings (PRIORITY — next up)**
-  - [ ] 5.2.1 Settings persistence layer (electron-store + IPC + preload + types)
+- [ ] **5.2 Onboarding & settings (PRIORITY — in progress)**
+  - [x] 5.2.1 Settings persistence layer (DIY JSON + IPC + preload + types) — awaiting human verification (2026-06-23)
   - [ ] 5.2.2 Wire settings into runtime behaviour (tracking / pin / opacity / shortcut)
   - [ ] 5.2.3 Settings UI (third tab)
   - [ ] 5.2.4 First-run onboarding (3-step in-window flow)
@@ -455,6 +455,63 @@ notarization step and no Gatekeeper-clean distribution.
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task 5.2.1 complete — awaiting human verification (2026-06-23)
+**Scope (held to):** persistence layer + IPC + preload + types only. NO UI, NO runtime
+behaviour wired to settings yet (that's 5.2.2). Existing app behaviour unchanged.
+
+**Planner-gate hit + resolved:** `electron-store` (the planned dep) is 403 Forbidden
+on the Skyscanner Artifactory mirror. Human chose **DIY persistence** instead. Done
+in ~120 lines, zero new deps.
+
+**Files changed:**
+- `src/settings.ts` (new) — `Settings` type, `DEFAULT_SETTINGS`, pure
+  `mergeSettings()` (type-safe, opacity clamped to 0.3–1, shortcut trimmed/non-empty,
+  unknown fields stripped), and `SettingsStore` class (`load`/`get`/`set`/`subscribe`,
+  serialized writes via a queued tmp-file-then-rename for atomicity).
+- `src/settings.test.ts` (new) — 11 tests for `mergeSettings` (defaults, partial,
+  type-rejection per field, opacity clamping, shortcut trim, unknown-field drop,
+  custom-defaults override).
+- `src/global.d.ts` — re-exports `Settings` from `src/settings.ts` as an ambient type
+  (single source of truth, no drift), adds `CompanionSettingsApi`, extends
+  `CompanionApi` with `settings`.
+- `src/preload.ts` — exposes `window.companion.settings.{get, set, onChange}`
+  (`onChange` mirrors the existing `onFocusedElement` unsubscribe pattern).
+- `src/main.ts` — on `ready`: creates `SettingsStore` at
+  `path.join(app.getPath('userData'), 'settings.json')`, awaits `load()`, registers
+  `settings:get` / `settings:set` IPC, broadcasts `settings:changed` to all windows
+  on every change. IPC handlers registered before `createWindow()`, so no
+  ready-race for the first renderer `get()`.
+
+**Verified by Executor:**
+- `npm test` → 54 passed (was 43). No lint errors.
+- GUI verification is not possible from the agent sandbox (documented lesson).
+
+**Needs human check (restart required — main + preload changed, no hot reload):**
+1. Ctrl-C the running `npm start`, then `npm start` again.
+2. In the renderer DevTools console (you may need to add `mainWindow.webContents.openDevTools({ mode: 'detach' })` to `main.ts` temporarily, OR just trust the file check in step 3), run:
+   ```
+   await window.companion.settings.get()
+   ```
+   Should return `{ liveTracking: true, pinned: true, opacity: 1, captureShortcut: 'CommandOrControl+Shift+A', hasOnboarded: false }`.
+3. Then run:
+   ```
+   await window.companion.settings.set({ opacity: 0.8 })
+   ```
+   Should return the updated object.
+4. Quit + relaunch the app. `await window.companion.settings.get()` should still
+   return `{ ..., opacity: 0.8 }`. The file at
+   `~/Library/Application Support/voiceover-companion/settings.json` should exist
+   and contain the JSON.
+
+**If you don't want to open DevTools just for this**, just confirm the file appears
+at the path above after step 3 and contains the expected JSON. That's sufficient
+proof persistence works end-to-end; the runtime wiring will be exercised properly in
+5.2.2 anyway.
+
+**Question for Planner/human:** confirm 5.2.1 verified, then say "proceed to 5.2.2"
+(wire each setting into runtime behaviour: tracking on/off, pin, opacity, shortcut
+re-registration).
 
 ### Planner note — Phase 5 re-planned, ready to execute 5.2.1 (2026-06-23)
 - Execution order locked with human: **5.2 → 5.1 → 5.3**.

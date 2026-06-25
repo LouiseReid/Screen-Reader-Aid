@@ -14,4 +14,15 @@ contextBridge.exposeInMainWorld('companion', {
     ipcRenderer.on('a11y:focusedElement', listener);
     return () => ipcRenderer.removeListener('a11y:focusedElement', listener);
   },
+  settings: {
+    get: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
+    set: (partial: Partial<Settings>): Promise<Settings> =>
+      ipcRenderer.invoke('settings:set', partial),
+    onChange: (callback: (settings: Settings) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: Settings): void =>
+        callback(data);
+      ipcRenderer.on('settings:changed', listener);
+      return () => ipcRenderer.removeListener('settings:changed', listener);
+    },
+  },
 });
