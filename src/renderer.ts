@@ -18,7 +18,6 @@ const permissionView = document.getElementById('permission-view');
 const mainView = document.getElementById('main-view');
 const openSettingsButton = document.getElementById('open-settings');
 const recheckButton = document.getElementById('recheck');
-const captureButton = document.getElementById('capture');
 const elementOutput = document.getElementById('element-output');
 const announcementText = document.getElementById('announcement-text');
 const announcementParts = document.getElementById('announcement-parts');
@@ -289,10 +288,6 @@ openSettingsButton?.addEventListener('click', () => {
 recheckButton?.addEventListener('click', () => {
   show(loadingView);
   void refreshTrust();
-});
-
-captureButton?.addEventListener('click', async () => {
-  renderElement(await window.companion.getFocusedElement());
 });
 
 tabInspector?.addEventListener('click', () => selectTab('inspector'));

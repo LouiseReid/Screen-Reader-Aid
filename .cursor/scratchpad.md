@@ -246,6 +246,82 @@ requires sampling pixels (screenshot + color math) and is deferred to a later ph
 > credentials/decisions from the human; 5.3 is a stretch and needs a second OS
 > permission, so it sits last.
 
+#### Phase 5.0 — Pre-bundling UX feedback (added 2026-06-25, do FIRST)
+
+> User testing surfaced three UX issues to fix BEFORE bundling (5.1). All three are
+> small and independent. Execute one at a time with human verification, as usual.
+
+**Task UX.1 — Remove the "Capture now" button**
+- Rationale (user): the in-window "Capture now" button is unclear, unlikely to be
+  used, and wastes panel real estate.
+- Change: remove the `#capture` button + its `.actions` wrapper from `index.html`;
+  remove the `captureButton` lookup + click listener from `src/renderer.ts`.
+- KEEP: the global `⌘⇧A` capture shortcut in `main.ts` (it's free, non-focus-stealing,
+  and a real capture path). Keep a short hint mentioning it (trim wording).
+  Decision flagged to human: keep shortcut+hint vs remove hint too.
+- Locate: `index.html` lines ~81–85 (button), ~53–56 (hint); `src/renderer.ts`
+  lines ~21, ~294–296. `getFocusedElement` IPC/preload stay (shortcut still uses it).
+- Success: panel no longer shows the button; live tracking + ⌘⇧A still work; no dead
+  references; `npm test` green; no lint errors.
+
+**Task UX.2 — Tighten the announcement ("drop likely" + closer to actual)**
+- Rationale (user): "VoiceOver will likely announce" should read closer to what is
+  actually announced, and drop the word "likely".
+- UI copy (`index.html`):
+  - Label: "VoiceOver will likely announce" → "VoiceOver announces".
+  - Disclaimer: reword from "Approximation … not VoiceOver's exact wording." to a
+    lighter-but-honest line, e.g. "Wording can vary by VoiceOver version and system
+    language." **Honesty constraint retained** (Challenge #6 forbids claiming exact
+    output) — flagged to human; we drop "likely" but keep a brief caveat.
+- Synthesizer accuracy (`src/announce.ts`) — research-backed (tetralogical VO-mac
+  HTML support + Apple docs):
+  - Fallback ROLE_WORDS: `AXTextField`/`AXTextArea` → **"edit text"** (VO on Mac
+    says "edit text", not "text field"). Only affects the fallback used when
+    `AXRoleDescription` is absent (we still prefer the real roleDescription, which is
+    what VO actually speaks).
+  - Empty edit text: when role is text field/area and there is no value, append
+    **"blank"** (VO says "edit text, blank"). Flag for VO verification.
+  - Keep name-first order (confirmed correct for buttons/links/fields/headings).
+  - **NEEDS REAL-VO VERIFICATION (human has VO+Safari):** checkbox/radio state-vs-role
+    order. Research suggests state may precede role for checkboxes on Mac; current
+    code emits role then state. Leave as-is in code, list as a question; tune only if
+    the human confirms the real order.
+- Tests: update `src/announce.test.ts` expectations for "edit text"/"blank"; keep all
+  green.
+- Success: label reads "VoiceOver announces" with no "likely"; text fields announce
+  "edit text"; `npm test` green; human confirms the live output reads believably in
+  Safari.
+
+**Task UX.3 — Warning banner for non-Safari browsers**
+- Rationale (user): VoiceOver is best used with Safari; when the app under test is a
+  non-Safari browser, show a warning banner recommending Safari.
+- Native (`native/addon.mm`): expose the frontmost/owning app's **bundle identifier**
+  (and localized name) so the renderer can identify the browser.
+  - `getFocusedElement`: we already have `frontPid`; add `bundleId`/`appName` from the
+    `NSRunningApplication` we already fetch.
+  - Live tracking: add `bundleId`/`appName` to `FocusedData` (look up
+    `NSRunningApplication runningApplicationWithProcessIdentifier:data.pid`), set in
+    `ReadElement`/`BuildObject`, so every pushed focus carries the active app id.
+  - Requires `npm run build:native` + full app restart (human step).
+- Pure helper (`src/browser.ts` + tests): `classifyApp(bundleId): { isBrowser,
+  isSafari, name }` (or `browserWarning(bundleId): string | null`). Known browsers:
+  Safari (`com.apple.Safari`, `com.apple.SafariTechnologyPreview`), Chrome
+  (`com.google.Chrome*`), Edge (`com.microsoft.edgemac`), Brave (`com.brave.Browser`),
+  Arc (`company.thebrowser.Browser`), Firefox (`org.mozilla.firefox`), Opera, Vivaldi.
+  Non-browsers and unknown bundle ids → no warning (null).
+- Types (`src/global.d.ts`): add `bundleId?`, `appName?` to `FocusedElement`.
+- UI (`index.html` + `src/renderer.ts` + `src/index.css`): a live banner at the top of
+  the inspector panel; shows when `isBrowser && !isSafari`, hides for Safari /
+  non-browsers / unknown. Auto show/hide on focus change (not dismissible) so it always
+  reflects the current target. Copy e.g. "You're testing in <Browser>. VoiceOver is
+  designed for Safari — results are most accurate there."
+- Success: focusing web content in Chrome/Edge/etc. shows the banner naming the
+  browser; focusing in Safari hides it; focusing a non-browser app shows nothing;
+  unit tests for `classifyApp` pass; `npm test` green.
+
+> Milestone E.1 (Phase 5.0 done): cleaner panel, more accurate/less-hedged
+> announcement, and a Safari-recommendation banner — ready to bundle.
+
 #### Phase 5.2 — Onboarding & settings (PRIORITY — execute next)
 
 Original brief: "toggle live tracking, pin/unpin, opacity". The app today has no
@@ -433,6 +509,10 @@ notarization step and no Gatekeeper-clean distribution.
 - [x] 4.2 Wire learn-more into UI (VERIFIED by human 2026-06-23)
 - [x] 4.3 VoiceOver driving guide / quick reference (VERIFIED by human 2026-06-19)
 - [x] 4.4 Contextual "what to do next" hints (VERIFIED by human 2026-06-19)
+- [ ] **5.0 Pre-bundling UX feedback (do FIRST — added 2026-06-25)**
+  - [x] UX.1 Remove "Capture now" button — awaiting human verification (2026-06-25)
+  - [ ] UX.2 Tighten announcement (drop "likely" + "edit text"/"blank" accuracy)
+  - [ ] UX.3 Non-Safari browser warning banner (native bundleId + classifier + UI)
 - [ ] **5.2 Onboarding & settings (PRIORITY — in progress)**
   - [x] 5.2.1 Settings persistence layer (DIY JSON + IPC + preload + types) — awaiting human verification (2026-06-23)
   - [ ] 5.2.2 Wire settings into runtime behaviour (tracking / pin / opacity / shortcut)
@@ -455,6 +535,33 @@ notarization step and no Gatekeeper-clean distribution.
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task UX.1 complete — awaiting human verification (2026-06-25)
+**Scope (held to):** remove the in-window "Capture now" button + its hint. No logic
+changes; renderer/HTML only.
+
+**Files changed:**
+- `index.html` — removed the `.actions` wrapper + `#capture` button from the inspector
+  panel; trimmed the hint to drop the "Press ⌘⇧A to capture on demand" sentence
+  (kept the "Updates live as you move focus…" orientation line).
+- `src/renderer.ts` — removed the `captureButton` lookup and its click listener.
+
+**Decision flagged (kept minimal, did NOT over-reach):**
+- I KEPT the `⌘⇧A` global shortcut in `main.ts` (and its `getFocusedElement`
+  IPC/preload/native plumbing). It takes no screen real estate, so it doesn't conflict
+  with the user's complaint. Removing it would cascade into deleting the
+  `getFocusedElement` handler, the preload method, the `global.d.ts` type, and the
+  native export — out of scope for a "remove the button" task.
+- **Minor downside to be aware of:** the shortcut globally intercepts ⌘⇧A from every
+  app while the Companion runs (it's now undocumented in the UI). If you'd rather I
+  remove the shortcut entirely (and its now-unused capture plumbing), say so and I'll
+  do it as a small follow-up.
+
+**Verified by Executor:** `npm test` → 54 passed; no lint errors. Renderer-only →
+Vite hot-reloads (no app restart needed).
+
+**Needs human check:** confirm the "Capture now" button is gone from the Inspector and
+the panel still shows live announcement / Try next / issues as focus moves.
 
 ### Task 5.2.1 complete — awaiting human verification (2026-06-23)
 **Scope (held to):** persistence layer + IPC + preload + types only. NO UI, NO runtime
