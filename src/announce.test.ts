@@ -22,7 +22,8 @@ describe('describeAnnouncement', () => {
     ).toBe('Home, link');
   });
 
-  it('announces a text field with its value', () => {
+  it('announces a text field as "edit text" with its value', () => {
+    // Safari reports AXRoleDescription "text field", but VoiceOver says "edit text".
     expect(
       describeAnnouncement({
         role: 'AXTextField',
@@ -30,7 +31,29 @@ describe('describeAnnouncement', () => {
         title: 'Email',
         value: 'john@example.com',
       }).utterance,
-    ).toBe('Email, text field, john@example.com');
+    ).toBe('Email, edit text, john@example.com');
+  });
+
+  it('announces an empty text field as "edit text, blank"', () => {
+    expect(
+      describeAnnouncement({
+        role: 'AXTextField',
+        roleDescription: 'text field',
+        title: 'Email',
+        value: '',
+      }).utterance,
+    ).toBe('Email, edit text, blank');
+  });
+
+  it('announces a text area as "edit text"', () => {
+    expect(
+      describeAnnouncement({
+        role: 'AXTextArea',
+        roleDescription: 'text area',
+        title: 'Bio',
+        value: 'Hello',
+      }).utterance,
+    ).toBe('Bio, edit text, Hello');
   });
 
   it('announces a checked checkbox', () => {

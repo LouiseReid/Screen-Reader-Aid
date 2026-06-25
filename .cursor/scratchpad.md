@@ -511,7 +511,7 @@ notarization step and no Gatekeeper-clean distribution.
 - [x] 4.4 Contextual "what to do next" hints (VERIFIED by human 2026-06-19)
 - [ ] **5.0 Pre-bundling UX feedback (do FIRST — added 2026-06-25)**
   - [x] UX.1 Remove "Capture now" button — awaiting human verification (2026-06-25)
-  - [ ] UX.2 Tighten announcement (drop "likely" + "edit text"/"blank" accuracy)
+  - [x] UX.2 Tighten announcement (drop "likely" + "edit text"/"blank" accuracy) — awaiting human verification (2026-06-25)
   - [ ] UX.3 Non-Safari browser warning banner (native bundleId + classifier + UI)
 - [ ] **5.2 Onboarding & settings (PRIORITY — in progress)**
   - [x] 5.2.1 Settings persistence layer (DIY JSON + IPC + preload + types) — awaiting human verification (2026-06-23)
@@ -535,6 +535,44 @@ notarization step and no Gatekeeper-clean distribution.
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task UX.2 complete — awaiting human verification (2026-06-25)
+**Scope (held to):** announcement wording + targeted accuracy. Pure function + UI copy.
+
+**Files changed:**
+- `index.html` — announcement label "VoiceOver will likely announce" → **"VoiceOver
+  announces"** (dropped "likely"); disclaimer reworded to **"Wording can vary by
+  VoiceOver version and system language."** (kept a brief honest caveat per Challenge
+  #6 — we never claim byte-for-byte output).
+- `src/announce.ts`:
+  - New `VO_ROLE_WORDS` override map that takes precedence over `AXRoleDescription`
+    for roles where VoiceOver diverges from the system role description. Currently
+    `AXTextField`/`AXTextArea` → **"edit text"** (Safari reports AXRoleDescription
+    "text field", but VoiceOver actually says "edit text" — confirmed via tetralogical
+    VO-mac HTML support reference). Also updated the fallback `ROLE_WORDS` to "edit
+    text" for consistency.
+  - Empty editable field now appends **"blank"** (e.g. "Email, edit text, blank").
+  - Role-word source label in the "why" panel reads `role (VoiceOver)` when the
+    override is used.
+  - Top-of-file doc comment dehedged (dropped "likely").
+- `src/announce.test.ts` — updated the text-field expectation to "edit text"; added
+  empty-field ("…, blank") and text-area cases.
+
+**Verified by Executor:** `npm test` → 56 passed (was 54); no lint errors. Renderer +
+pure-function change → Vite hot-reloads (no app restart needed).
+
+**NEEDS REAL-VO VERIFICATION (you have VO + Safari, I can't run the GUI):**
+1. **"blank" for empty fields** — confirm VoiceOver actually says "blank" on an empty
+   text input in Safari. I'm high-confidence on "edit text" but only medium on
+   "blank" / its exact placement. If VO doesn't say it (or says it elsewhere), tell me
+   and I'll remove/adjust — it's an isolated 3-line block.
+2. **Checkbox / radio order** (left UNCHANGED, flagged in plan): current output is
+   "name, checkbox, checked" (role then state). Some references suggest VoiceOver on
+   Mac may say state before role. Please listen to a real checkbox in Safari and tell
+   me the order you hear; I'll tune only if it's wrong.
+3. General gut-check: focus a few real controls in Safari (button, link, empty +
+   filled text field, heading, image) and confirm the "VoiceOver announces" line reads
+   like what you actually hear.
 
 ### Task UX.1 complete — awaiting human verification (2026-06-25)
 **Scope (held to):** remove the in-window "Capture now" button + its hint. No logic

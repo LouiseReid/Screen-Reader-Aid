@@ -1,11 +1,12 @@
 /**
- * Approximates what VoiceOver is *likely* to announce for a focused element,
- * derived from its macOS accessibility attributes.
+ * Builds the announcement VoiceOver makes for a focused element, derived from its
+ * macOS accessibility attributes.
  *
- * This is an approximation, not VoiceOver's real (private) output: it composes a
- * plausible utterance in the order name -> state -> role -> value, plus an
- * optional hint. The `parts` breakdown records which attribute produced each
- * piece so the UI can explain the "why".
+ * Wording can vary by VoiceOver version and system language, so this is a close
+ * approximation rather than byte-for-byte output. It composes the utterance in
+ * the order name -> state -> role -> value, plus an optional hint. The `parts`
+ * breakdown records which attribute produced each piece so the UI can explain
+ * the "why".
  */
 
 export interface AnnouncementPart {
@@ -22,14 +23,23 @@ function str(value: unknown): string {
   return value === null || value === undefined ? '' : String(value).trim();
 }
 
+// VoiceOver speaks its own role words that can differ from AXRoleDescription.
+// e.g. a text <input> reports AXRoleDescription "text field" but VoiceOver
+// actually says "edit text". These overrides take precedence so the utterance
+// matches what VoiceOver really announces.
+const VO_ROLE_WORDS: Record<string, string> = {
+  AXTextField: 'edit text',
+  AXTextArea: 'edit text',
+};
+
 // Fallback role words when AXRoleDescription is missing.
 const ROLE_WORDS: Record<string, string> = {
   AXButton: 'button',
   AXLink: 'link',
   AXCheckBox: 'checkbox',
   AXRadioButton: 'radio button',
-  AXTextField: 'text field',
-  AXTextArea: 'text area',
+  AXTextField: 'edit text',
+  AXTextArea: 'edit text',
   AXPopUpButton: 'pop up button',
   AXHeading: 'heading',
   AXImage: 'image',
@@ -52,8 +62,13 @@ export function describeAnnouncement(element: FocusedElement): Announcement {
   const help = str(element.help);
   const disabled = str(element.enabled) === 'false';
 
-  const roleWord = roleDescription || ROLE_WORDS[role] || '';
-  const roleSource = roleDescription ? 'role (roleDescription)' : 'role';
+  const voRoleWord = VO_ROLE_WORDS[role];
+  const roleWord = voRoleWord || roleDescription || ROLE_WORDS[role] || '';
+  const roleSource = voRoleWord
+    ? 'role (VoiceOver)'
+    : roleDescription
+      ? 'role (roleDescription)'
+      : 'role';
 
   const parts: AnnouncementPart[] = [];
 
@@ -116,6 +131,9 @@ export function describeAnnouncement(element: FocusedElement): Announcement {
       }
       if (value) {
         parts.push({ text: value, source: 'value (content)' });
+      } else {
+        // VoiceOver announces an empty editable field as "blank".
+        parts.push({ text: 'blank', source: 'state (empty field)' });
       }
       break;
     }
