@@ -522,9 +522,9 @@ notarization step and no Gatekeeper-clean distribution.
   - [ ] 5.2.5 "Help" entry to re-open onboarding
 - [ ] 5.1 Packaging / signing / notarization
   - [x] 5.1.0 Decide path — **Path C** chosen; bundle id/name/arch locked; cert NOT yet present (2026-06-25)
-  - [x] 5.1.1 App identity polish (bundleId + category + icon) — launch verified; icon awaiting visual check (2026-06-25)
-  - [x] 5.1.1b Ship native addon in packaged app (extraResource + require-path) — awaiting human launch test (2026-06-25)
-  - [ ] 5.1.2 Configure forge makers (darwin + DMG) + osxSign / osxNotarize — NEEDS cert + creds
+  - [x] 5.1.1 App identity polish (bundleId + category + icon) (VERIFIED by human 2026-06-25 — launch + icon)
+  - [x] 5.1.1b Ship native addon in packaged app (extraResource + require-path) (VERIFIED by human 2026-06-25 — packaged app launches + addon loads)
+  - [~] 5.1.2 Forge makers (darwin + DMG) done + unsigned DMG verified; osxSign/osxNotarize wired but inert until cert/creds (2026-06-25)
   - [ ] 5.1.3 Verify nested binaries are signed (native .node) — NEEDS cert
   - [ ] 5.1.4 Accessibility-grant persistence test across rebuild — NEEDS signed build
   - [ ] 5.1.5 Audit / dependency cleanup decision
@@ -537,6 +537,44 @@ notarization step and no Gatekeeper-clean distribution.
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task 5.1.2 prepped (unsigned DMG works; signing wired but inert) — 2026-06-25
+**Scope:** make config macOS-ready + DMG, with signing/notarization opt-in via env so
+an unsigned build works today and auto-signs once the Developer ID cert + creds exist.
+
+**Files changed:**
+- `forge.config.ts` — rewritten:
+  - Makers scoped to darwin: `MakerZIP(['darwin'])` + new `MakerDMG({overwrite:true})`.
+    Removed Windows (Squirrel) + Linux (Deb/Rpm) makers — this is a macOS-only app.
+  - Added env-guarded `osxSign` / `osxNotarize` in `packagerConfig`. Logic: sign when
+    `APPLE_SIGN=1` or `APPLE_IDENTITY` set (identity blank ⇒ auto-detect Developer ID
+    from Keychain); notarize when `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` +
+    `APPLE_TEAM_ID` all present. Missing creds ⇒ both undefined ⇒ unsigned build.
+  - Dependency-free `.env` loader (reads gitignored `.env` from cwd; no `dotenv` dep,
+    avoiding the corporate-registry block we hit with electron-store).
+- `.env.example` (new, committed) — documents `APPLE_SIGN`, `APPLE_IDENTITY`,
+  `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` with how-to-get notes.
+  `.env` itself is gitignored (line 61).
+- `package.json` — added devDep `@electron-forge/maker-dmg@^7.11.2`.
+
+**Verified by Executor (`npm run make`, no creds):**
+- Built `out/make/VoiceOver Companion-0.1.0-arm64.dmg` (113 MB) + the darwin/arm64
+  `.zip`.
+- `codesign -dvv` on the packaged app → `Signature=adhoc` (unsigned), as expected.
+
+**PENDING (needs the Developer ID cert — 5.1.3/5.1.4):**
+- Real signing + notarization run, then verify with `codesign --verify --deep
+  --strict` and `spctl -a -t exec -vv` (expect "accepted source=Notarized Developer
+  ID"), then the grant-persistence test.
+- **Flag for the signed run:** notarization requires the **hardened runtime** (and
+  possibly Electron entitlements for the native addon, e.g.
+  `com.apple.security.cs.disable-library-validation` /
+  `allow-unsigned-executable-memory`). @electron/osx-sign usually applies sane Electron
+  defaults, but if notarization is rejected we add an entitlements plist via
+  `osxSign.optionsForFile`. Can't test until the cert exists.
+- Minor: adhoc codesign Identifier shows `com.github.Electron` (Electron default);
+  real Developer ID signing will use the app's bundle id. Not a problem for the
+  unsigned build.
 
 ### Task 5.1.1 icon complete — awaiting human visual check (2026-06-25)
 - User explicitly asked for an app icon → generated one (allowed: explicit request).
