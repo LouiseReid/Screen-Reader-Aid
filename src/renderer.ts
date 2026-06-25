@@ -28,8 +28,21 @@ const browserBanner = document.getElementById('browser-banner');
 const guideContainer = document.getElementById('guide');
 const tabInspector = document.getElementById('tab-inspector');
 const tabGuide = document.getElementById('tab-guide');
+const tabSettings = document.getElementById('tab-settings');
 const inspectorPanel = document.getElementById('tab-inspector-panel');
 const guidePanel = document.getElementById('tab-guide-panel');
+const settingsPanel = document.getElementById('tab-settings-panel');
+const liveTrackingInput = document.getElementById(
+  'set-live-tracking',
+) as HTMLInputElement | null;
+const pinnedInput = document.getElementById(
+  'set-pinned',
+) as HTMLInputElement | null;
+const opacityInput = document.getElementById(
+  'set-opacity',
+) as HTMLInputElement | null;
+const opacityValue = document.getElementById('set-opacity-value');
+const resetButton = document.getElementById('set-reset');
 
 const allViews = [loadingView, permissionView, mainView];
 
@@ -282,16 +295,42 @@ function renderGuide(): void {
   }
 }
 
-function selectTab(tab: 'inspector' | 'guide'): void {
-  const showInspector = tab === 'inspector';
-  if (inspectorPanel) {
-    inspectorPanel.hidden = !showInspector;
+type TabName = 'inspector' | 'guide' | 'settings';
+
+const TABS: Array<{
+  name: TabName;
+  button: HTMLElement | null;
+  panel: HTMLElement | null;
+}> = [
+  { name: 'inspector', button: tabInspector, panel: inspectorPanel },
+  { name: 'guide', button: tabGuide, panel: guidePanel },
+  { name: 'settings', button: tabSettings, panel: settingsPanel },
+];
+
+function selectTab(tab: TabName): void {
+  for (const entry of TABS) {
+    const active = entry.name === tab;
+    if (entry.panel) {
+      entry.panel.hidden = !active;
+    }
+    entry.button?.classList.toggle('is-active', active);
   }
-  if (guidePanel) {
-    guidePanel.hidden = showInspector;
+}
+
+function renderSettings(settings: Settings): void {
+  if (liveTrackingInput) {
+    liveTrackingInput.checked = settings.liveTracking;
   }
-  tabInspector?.classList.toggle('is-active', showInspector);
-  tabGuide?.classList.toggle('is-active', !showInspector);
+  if (pinnedInput) {
+    pinnedInput.checked = settings.pinned;
+  }
+  const percent = Math.round(settings.opacity * 100);
+  if (opacityInput) {
+    opacityInput.value = String(percent);
+  }
+  if (opacityValue) {
+    opacityValue.textContent = `${percent}%`;
+  }
 }
 
 async function refreshTrust(): Promise<void> {
@@ -311,10 +350,40 @@ recheckButton?.addEventListener('click', () => {
 
 tabInspector?.addEventListener('click', () => selectTab('inspector'));
 tabGuide?.addEventListener('click', () => selectTab('guide'));
+tabSettings?.addEventListener('click', () => selectTab('settings'));
+
+liveTrackingInput?.addEventListener('change', () => {
+  void window.companion.settings.set({ liveTracking: liveTrackingInput.checked });
+});
+
+pinnedInput?.addEventListener('change', () => {
+  void window.companion.settings.set({ pinned: pinnedInput.checked });
+});
+
+opacityInput?.addEventListener('input', () => {
+  const percent = Number(opacityInput.value);
+  if (opacityValue) {
+    opacityValue.textContent = `${percent}%`;
+  }
+  void window.companion.settings.set({ opacity: percent / 100 });
+});
+
+resetButton?.addEventListener('click', () => {
+  void window.companion.settings.set({
+    liveTracking: true,
+    pinned: true,
+    opacity: 1,
+  });
+});
+
+window.companion.settings.onChange((settings) => {
+  renderSettings(settings);
+});
 
 window.companion.onFocusedElement((data) => {
   renderElement(data);
 });
 
 renderGuide();
+void window.companion.settings.get().then(renderSettings);
 void refreshTrust();

@@ -517,7 +517,7 @@ notarization step and no Gatekeeper-clean distribution.
 - [ ] **5.2 Onboarding & settings (PRIORITY — in progress)**
   - [x] 5.2.1 Settings persistence layer (DIY JSON + IPC + preload + types) — awaiting human verification (2026-06-23)
   - [x] 5.2.2 Wire settings into runtime behaviour (tracking / pin / opacity / shortcut) — VERIFIED by human 2026-06-25
-  - [ ] 5.2.3 Settings UI (third tab)
+  - [x] 5.2.3 Settings UI (third tab) — code done, awaiting human verification (2026-06-25)
   - [ ] 5.2.4 First-run onboarding (3-step in-window flow)
   - [ ] 5.2.5 "Help" entry to re-open onboarding
 - [ ] 5.1 Packaging / signing / notarization
@@ -537,6 +537,44 @@ notarization step and no Gatekeeper-clean distribution.
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task 5.2.3 complete — awaiting human verification (2026-06-25)
+**Scope:** add a third "Settings" tab with live controls. No new settings, no shortcut
+control (capture removed).
+
+**Files changed:**
+- `index.html` — added the `Settings` tab button + `#tab-settings-panel` containing:
+  Live tracking (checkbox), Always on top (checkbox), Opacity (range 30–100%, step 5,
+  with a live `%` readout), and a "Reset to defaults" button. Each control has a `<label
+  for=…>` + a one-line hint (a11y app — controls must be properly labelled).
+- `src/index.css` — styles for `.settings-form` / `.setting-row` / opacity control;
+  `accent-color` on checkbox + range to match the blue palette.
+- `src/renderer.ts` — generalised `selectTab` from 2→3 tabs (table-driven), added
+  `renderSettings()`, wired control events to `window.companion.settings.set(...)`,
+  subscribed to `settings.onChange` to keep the UI in sync, and load current settings on
+  startup. Reset writes `{ liveTracking:true, pinned:true, opacity:1 }` only (deliberately
+  NOT `hasOnboarded`, so reset can't re-trigger onboarding).
+
+**Decisions/notes:**
+- Opacity uses the `input` event so the window dims live while dragging. Each step calls
+  `settings.set`, which persists; the store only writes on real change and serialises
+  writes, so the extra tiny JSON writes during a drag are harmless.
+- Renderer does NOT import `DEFAULT_SETTINGS` (settings.ts pulls in node:fs/path, which
+  can't run in the renderer); the three reset values are inlined instead.
+
+**Verified by Executor:** `npm test` → 64 passed; no lint/type errors. (UI behaviour
+isn't unit-tested — needs a human run.)
+
+**Needs human check (restart `npm start`):**
+1. A third **Settings** tab appears next to Inspector / VoiceOver keys; clicking it shows
+   the controls, and the other tabs still switch correctly.
+2. Controls reflect current state on open (live tracking on, pinned on, opacity 100%).
+3. Toggling **Live tracking** off stops the panel updating; on resumes it.
+4. Toggling **Always on top** off/on drops/raises the float.
+5. Dragging **Opacity** dims the window live; the `%` readout tracks it; 30% is the floor.
+6. **Reset to defaults** returns all three to on / on / 100%.
+7. Everything persists across a restart.
+8. (a11y) Tabbing through the Settings tab with VoiceOver reads sensible labels.
 
 ### Capture logic removed (user request) — 2026-06-25
 User decided they don't want any on-demand "capture" feature. Live focus tracking is
@@ -561,8 +599,9 @@ pin, and opacity still work.
 ### Task 5.2.2 — VERIFIED by human 2026-06-25 (pin, opacity+clamp, live tracking all confirmed working)
 A dev-only convenience was added in this task: `mainWindow.webContents.openDevTools({ mode: 'detach' })`
 inside the dev-server branch of `createWindow` (panel is `focusable:false`, so ⌥⌘I
-can't reach it). Only runs under `npm start`, never in the packaged app. Revisit when
-the Settings UI (5.2.3) exists — may want to remove the auto-open then.
+can't reach it). Only runs under `npm start`, never in the packaged app.
+UPDATE 2026-06-25: removed at the user's request now that the Settings UI (5.2.3)
+exists — DevTools no longer auto-opens on launch.
 
 ### Task 5.2.2 complete — awaiting human verification (2026-06-25)
 **Scope:** wire the persisted settings into runtime behaviour. No UI yet (that's

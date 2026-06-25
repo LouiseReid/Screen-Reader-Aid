@@ -381,3 +381,66 @@ kbd {
   margin: 0;
   word-break: break-word;
 }
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #ececf0;
+}
+
+.setting-text {
+  min-width: 0;
+}
+
+.setting-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.setting-hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: #6e6e73;
+}
+
+.setting-control {
+  flex: none;
+}
+
+.opacity-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.opacity-value {
+  font-size: 0.85rem;
+  color: #6e6e73;
+  width: 2.75rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-actions {
+  margin-top: 1rem;
+}
+
+input[type='checkbox'] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: #0071e3;
+  cursor: pointer;
+}
+
+input[type='range'] {
+  accent-color: #0071e3;
+  cursor: pointer;
+}

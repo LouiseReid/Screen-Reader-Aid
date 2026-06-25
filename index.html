@@ -47,6 +47,9 @@
           <button id="tab-guide" type="button" class="tab">
             VoiceOver keys
           </button>
+          <button id="tab-settings" type="button" class="tab">
+            Settings
+          </button>
         </div>
 
         <div id="tab-inspector-panel" class="tab-panel">
@@ -92,6 +95,61 @@
             Option.
           </p>
           <div id="guide"></div>
+        </div>
+
+        <div id="tab-settings-panel" class="tab-panel" hidden>
+          <div class="settings-form">
+            <div class="setting-row">
+              <div class="setting-text">
+                <label class="setting-label" for="set-live-tracking">
+                  Live tracking
+                </label>
+                <p class="setting-hint">
+                  Update automatically as focus moves in other apps.
+                </p>
+              </div>
+              <input
+                id="set-live-tracking"
+                class="setting-control"
+                type="checkbox"
+              />
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-text">
+                <label class="setting-label" for="set-pinned">
+                  Always on top
+                </label>
+                <p class="setting-hint">
+                  Keep this window floating above other apps.
+                </p>
+              </div>
+              <input id="set-pinned" class="setting-control" type="checkbox" />
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-text">
+                <label class="setting-label" for="set-opacity">Opacity</label>
+                <p class="setting-hint">How see-through this window is.</p>
+              </div>
+              <div class="setting-control opacity-control">
+                <input
+                  id="set-opacity"
+                  type="range"
+                  min="30"
+                  max="100"
+                  step="5"
+                />
+                <span id="set-opacity-value" class="opacity-value">100%</span>
+              </div>
+            </div>
+
+            <div class="settings-actions">
+              <button id="set-reset" type="button" class="secondary">
+                Reset to defaults
+              </button>
+            </div>
+          </div>
         </div>
       </section>
     </main>
