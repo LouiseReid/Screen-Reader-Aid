@@ -12,6 +12,7 @@ import { detectIssues } from './issues';
 import { getConcept, type Concept } from './concepts';
 import { suggestNextActions } from './next-actions';
 import { VOICEOVER_GUIDE } from './voiceover-guide';
+import { classifyApp } from './browser';
 
 const loadingView = document.getElementById('loading-view');
 const permissionView = document.getElementById('permission-view');
@@ -23,6 +24,7 @@ const announcementText = document.getElementById('announcement-text');
 const announcementParts = document.getElementById('announcement-parts');
 const issuesList = document.getElementById('issues-list');
 const nextList = document.getElementById('next-list');
+const browserBanner = document.getElementById('browser-banner');
 const guideContainer = document.getElementById('guide');
 const tabInspector = document.getElementById('tab-inspector');
 const tabGuide = document.getElementById('tab-guide');
@@ -42,6 +44,8 @@ const FIELDS: Array<[keyof FocusedElement, string]> = [
   ['enabled', 'Enabled'],
   ['focused', 'Focused'],
   ['pid', 'App PID'],
+  ['appName', 'App'],
+  ['bundleId', 'Bundle ID'],
 ];
 
 function show(view: HTMLElement | null): void {
@@ -193,7 +197,22 @@ function renderNextActions(data: FocusedElement): void {
   }
 }
 
+function renderBrowserBanner(data: FocusedElement): void {
+  if (!browserBanner) {
+    return;
+  }
+  const info = classifyApp(data.bundleId);
+  if (info.isBrowser && !info.isSafari) {
+    browserBanner.textContent = `You\u2019re testing in ${info.name}. VoiceOver is designed for Safari \u2014 results are most accurate there.`;
+    browserBanner.hidden = false;
+  } else {
+    browserBanner.textContent = '';
+    browserBanner.hidden = true;
+  }
+}
+
 function renderElement(data: FocusedElement): void {
+  renderBrowserBanner(data);
   renderAnnouncement(data);
   renderNextActions(data);
   renderIssues(data);

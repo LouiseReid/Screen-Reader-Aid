@@ -512,7 +512,7 @@ notarization step and no Gatekeeper-clean distribution.
 - [ ] **5.0 Pre-bundling UX feedback (do FIRST — added 2026-06-25)**
   - [x] UX.1 Remove "Capture now" button — awaiting human verification (2026-06-25)
   - [x] UX.2 Tighten announcement (drop "likely" + "edit text"/"blank" accuracy) — awaiting human verification (2026-06-25)
-  - [ ] UX.3 Non-Safari browser warning banner (native bundleId + classifier + UI)
+  - [x] UX.3 Non-Safari browser warning banner (native bundleId + classifier + UI) — awaiting human verification (2026-06-25)
 - [ ] **5.2 Onboarding & settings (PRIORITY — in progress)**
   - [x] 5.2.1 Settings persistence layer (DIY JSON + IPC + preload + types) — awaiting human verification (2026-06-23)
   - [ ] 5.2.2 Wire settings into runtime behaviour (tracking / pin / opacity / shortcut)
@@ -535,6 +535,47 @@ notarization step and no Gatekeeper-clean distribution.
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task UX.3 complete — awaiting human verification (2026-06-25)
+**Scope:** warn when the app under test is a non-Safari browser. Native bundle-id
+exposure + pure classifier + UI banner.
+
+**Files changed:**
+- `native/addon.mm` — exposes the active app's **bundle identifier** + localized
+  **name** on both capture paths:
+  - `getFocusedElement` (⌘⇧A): reads `bundleIdentifier`/`localizedName` from the
+    frontmost `NSRunningApplication`; set early so even the "no focused element" result
+    carries them.
+  - Live tracking: added `bundleId`/`appName` to `FocusedData`, looked up via
+    `runningApplicationWithProcessIdentifier:` for the focused element's pid (wrapped
+    in `@autoreleasepool`), emitted in `BuildObject`.
+  - **Rebuilt: `npm run build:native` → addon.node OK.**
+- `src/browser.ts` (new) — pure `classifyApp(bundleId): { isBrowser, isSafari, name }`.
+  Known families (exact id or `${id}.` prefix for channel variants): Safari (+ Tech
+  Preview, isSafari=true), Chrome, Chromium, Edge, Brave, Arc, Firefox (+ Dev/Nightly),
+  Opera (+ GX), Vivaldi, DuckDuckGo. Unknown / native / empty → not-a-browser.
+- `src/browser.test.ts` (new) — 10 tests (Safari, Chrome + variants, Edge variant,
+  other browsers, the firefox-vs-firefoxdeveloperedition prefix guard, native apps,
+  null/undefined/empty, whitespace trim).
+- `src/global.d.ts` — `FocusedElement` gains `bundleId?`, `appName?`.
+- `index.html` — `#browser-banner` (`role="status"`, hidden) at the top of the
+  inspector panel.
+- `src/renderer.ts` — `renderBrowserBanner()` runs `classifyApp(data.bundleId)` on
+  every focus update; shows the banner only when `isBrowser && !isSafari`, otherwise
+  hides it. Also added `appName`/`bundleId` to the raw-attributes list (debug aid).
+- `src/index.css` — `.browser-banner` (warning-amber palette, matches issues styling).
+
+**Verified by Executor:** `npm test` → 66 passed (was 56); native rebuild OK; no lint
+errors.
+
+**Needs human check (restart REQUIRED — native `.node` reloads only on a fresh launch:
+Ctrl-C then `npm start`):**
+1. Focus web content in **Chrome** (or Edge/Brave/etc.) → amber banner appears naming
+   the browser ("You're testing in Google Chrome. VoiceOver is designed for Safari…").
+2. Switch to **Safari** and focus web content → banner disappears.
+3. Focus a **native app** (e.g. TextEdit) → no banner.
+4. (Optional) expand "Raw accessibility attributes" to confirm `App` / `Bundle ID`
+   populate (useful if the banner ever misbehaves).
 
 ### Task UX.2 complete — awaiting human verification (2026-06-25)
 **Scope (held to):** announcement wording + targeted accuracy. Pure function + UI copy.

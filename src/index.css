@@ -56,6 +56,21 @@ button.secondary:hover {
   color: #6e6e73;
 }
 
+.browser-banner {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #f3e0b5;
+  background: #fdf8ec;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #6b4300;
+}
+
+.browser-banner[hidden] {
+  display: none;
+}
+
 kbd {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85em;

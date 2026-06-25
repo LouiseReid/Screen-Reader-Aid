@@ -16,6 +16,8 @@ declare global {
     enabled?: string | number | boolean | null;
     focused?: string | number | boolean | null;
     pid?: number;
+    bundleId?: string | null;
+    appName?: string | null;
     error?: string;
   }
 

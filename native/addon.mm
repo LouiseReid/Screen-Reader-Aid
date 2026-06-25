@@ -70,12 +70,26 @@ Napi::Value GetFocusedElement(const Napi::CallbackInfo& info) {
   // frontmost app from NSWorkspace and unlock it before querying. Setting these
   // attributes on a regular native app is a harmless no-op.
   pid_t frontPid = 0;
+  std::string frontBundleId;
+  std::string frontAppName;
   @autoreleasepool {
     NSRunningApplication* front =
         [[NSWorkspace sharedWorkspace] frontmostApplication];
     if (front != nil) {
       frontPid = front.processIdentifier;
+      if (front.bundleIdentifier != nil) {
+        frontBundleId = std::string([front.bundleIdentifier UTF8String]);
+      }
+      if (front.localizedName != nil) {
+        frontAppName = std::string([front.localizedName UTF8String]);
+      }
     }
+  }
+  if (!frontBundleId.empty()) {
+    out.Set("bundleId", Napi::String::New(env, frontBundleId));
+  }
+  if (!frontAppName.empty()) {
+    out.Set("appName", Napi::String::New(env, frontAppName));
   }
   if (frontPid > 0) {
     out.Set("pid", Napi::Number::New(env, frontPid));
@@ -135,6 +149,8 @@ struct FocusedData {
   bool ok = false;
   std::string error;
   int pid = 0;
+  std::string bundleId;
+  std::string appName;
   std::string role;
   std::string subrole;
   std::string roleDescription;
@@ -196,6 +212,18 @@ static FocusedData ReadElement(AXUIElementRef element) {
   pid_t pid = 0;
   if (AXUIElementGetPid(element, &pid) == kAXErrorSuccess) {
     data.pid = (int)pid;
+    @autoreleasepool {
+      NSRunningApplication* app =
+          [NSRunningApplication runningApplicationWithProcessIdentifier:pid];
+      if (app != nil) {
+        if (app.bundleIdentifier != nil) {
+          data.bundleId = std::string([app.bundleIdentifier UTF8String]);
+        }
+        if (app.localizedName != nil) {
+          data.appName = std::string([app.localizedName UTF8String]);
+        }
+      }
+    }
   }
   data.role = CopyAttrStd(element, kAXRoleAttribute);
   data.subrole = CopyAttrStd(element, kAXSubroleAttribute);
@@ -237,6 +265,12 @@ static Napi::Object BuildObject(Napi::Env env, const FocusedData& data) {
   setStr("focused", data.focused);
   if (data.pid != 0) {
     out.Set("pid", Napi::Number::New(env, data.pid));
+  }
+  if (!data.bundleId.empty()) {
+    out.Set("bundleId", Napi::String::New(env, data.bundleId));
+  }
+  if (!data.appName.empty()) {
+    out.Set("appName", Napi::String::New(env, data.appName));
   }
   return out;
 }
