@@ -444,3 +444,20 @@ input[type='range'] {
   accent-color: #0071e3;
   cursor: pointer;
 }
+
+.onboard-list {
+  line-height: 1.6;
+  padding-left: 1.1rem;
+}
+
+.onboard-list li {
+  margin-bottom: 0.5rem;
+}
+
+.onboard-progress {
+  margin-top: 1.25rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #86868b;
+}

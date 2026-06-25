@@ -37,6 +37,82 @@
         </p>
       </section>
 
+      <section id="onboarding-view" hidden>
+        <h1>VoiceOver Companion</h1>
+
+        <div class="onboard-step" data-step="1">
+          <p class="lede">
+            A live co-pilot for testing web accessibility with VoiceOver.
+          </p>
+          <p>
+            As you move focus in your browser, this window shows what VoiceOver is
+            likely to announce, flags potential issues, and suggests what to try
+            next.
+          </p>
+          <p class="hint">
+            It works with web content in a browser (not native apps), and the
+            announcement is a close approximation &mdash; exact wording varies by
+            VoiceOver version and system language.
+          </p>
+          <div class="actions">
+            <button type="button" data-onboard="next">Next</button>
+          </div>
+          <p class="onboard-progress">Step 1 of 3</p>
+        </div>
+
+        <div class="onboard-step" data-step="2" hidden>
+          <p class="lede">
+            First, grant macOS <strong>Accessibility</strong> permission so the app
+            can read the focused element.
+          </p>
+          <ol class="steps">
+            <li>Click <strong>Open Accessibility Settings</strong>.</li>
+            <li>
+              Turn on <strong>VoiceOver Companion</strong> in the list.
+            </li>
+            <li>Come back here and click <strong>Re-check</strong>.</li>
+          </ol>
+          <div class="actions">
+            <button id="onboard-open-settings" type="button">
+              Open Accessibility Settings
+            </button>
+            <button id="onboard-recheck" type="button" class="secondary">
+              Re-check
+            </button>
+          </div>
+          <p id="onboard-perm-status" class="hint" role="status"></p>
+          <div class="actions">
+            <button type="button" class="secondary" data-onboard="back">Back</button>
+            <button type="button" data-onboard="next">Next</button>
+          </div>
+          <p class="onboard-progress">Step 2 of 3</p>
+        </div>
+
+        <div class="onboard-step" data-step="3" hidden>
+          <p class="lede">You&rsquo;re all set. Here&rsquo;s the layout:</p>
+          <ul class="onboard-list">
+            <li>
+              <strong>Inspector</strong> &mdash; what VoiceOver announces for the
+              focused element, potential issues, and what to try next. Updates live
+              as you move focus.
+            </li>
+            <li>
+              <strong>VoiceOver keys</strong> &mdash; a cheat sheet of common
+              commands for testing.
+            </li>
+            <li>
+              <strong>Settings</strong> &mdash; live tracking, always-on-top, and
+              opacity.
+            </li>
+          </ul>
+          <div class="actions">
+            <button type="button" class="secondary" data-onboard="back">Back</button>
+            <button id="onboard-done" type="button">Get started</button>
+          </div>
+          <p class="onboard-progress">Step 3 of 3</p>
+        </div>
+      </section>
+
       <section id="main-view" hidden>
         <h1>VoiceOver Companion</h1>
 

@@ -17,6 +17,14 @@ import { classifyApp } from './browser';
 const loadingView = document.getElementById('loading-view');
 const permissionView = document.getElementById('permission-view');
 const mainView = document.getElementById('main-view');
+const onboardingView = document.getElementById('onboarding-view');
+const onboardSteps = Array.from(
+  document.querySelectorAll<HTMLElement>('.onboard-step'),
+);
+const onboardOpenSettings = document.getElementById('onboard-open-settings');
+const onboardRecheck = document.getElementById('onboard-recheck');
+const onboardPermStatus = document.getElementById('onboard-perm-status');
+const onboardDone = document.getElementById('onboard-done');
 const openSettingsButton = document.getElementById('open-settings');
 const recheckButton = document.getElementById('recheck');
 const elementOutput = document.getElementById('element-output');
@@ -44,7 +52,7 @@ const opacityInput = document.getElementById(
 const opacityValue = document.getElementById('set-opacity-value');
 const resetButton = document.getElementById('set-reset');
 
-const allViews = [loadingView, permissionView, mainView];
+const allViews = [loadingView, permissionView, mainView, onboardingView];
 
 const FIELDS: Array<[keyof FocusedElement, string]> = [
   ['role', 'Role'],
@@ -339,6 +347,24 @@ async function refreshTrust(): Promise<void> {
   show(trusted ? mainView : permissionView);
 }
 
+let onboardStep = 1;
+
+function showOnboardStep(step: number): void {
+  const total = onboardSteps.length;
+  onboardStep = Math.min(Math.max(step, 1), total);
+  for (const el of onboardSteps) {
+    el.hidden = Number(el.dataset.step) !== onboardStep;
+  }
+}
+
+function startOnboarding(): void {
+  if (onboardPermStatus) {
+    onboardPermStatus.textContent = '';
+  }
+  showOnboardStep(1);
+  show(onboardingView);
+}
+
 openSettingsButton?.addEventListener('click', () => {
   void window.companion.openAccessibilitySettings();
 });
@@ -376,6 +402,40 @@ resetButton?.addEventListener('click', () => {
   });
 });
 
+onboardingView?.addEventListener('click', (event) => {
+  const target = (event.target as HTMLElement | null)?.closest(
+    '[data-onboard]',
+  ) as HTMLElement | null;
+  if (!target) {
+    return;
+  }
+  if (target.dataset.onboard === 'next') {
+    showOnboardStep(onboardStep + 1);
+  } else if (target.dataset.onboard === 'back') {
+    showOnboardStep(onboardStep - 1);
+  }
+});
+
+onboardOpenSettings?.addEventListener('click', () => {
+  void window.companion.openAccessibilitySettings();
+});
+
+onboardRecheck?.addEventListener('click', () => {
+  void window.companion.isTrusted().then((trusted) => {
+    if (onboardPermStatus) {
+      onboardPermStatus.textContent = trusted
+        ? 'Permission granted. You can continue.'
+        : 'Not granted yet. Turn on VoiceOver Companion, then re-check.';
+    }
+  });
+});
+
+onboardDone?.addEventListener('click', () => {
+  void window.companion.settings
+    .set({ hasOnboarded: true })
+    .then(() => refreshTrust());
+});
+
 window.companion.settings.onChange((settings) => {
   renderSettings(settings);
 });
@@ -384,6 +444,15 @@ window.companion.onFocusedElement((data) => {
   renderElement(data);
 });
 
+async function init(): Promise<void> {
+  const settings = await window.companion.settings.get();
+  renderSettings(settings);
+  if (settings.hasOnboarded) {
+    await refreshTrust();
+  } else {
+    startOnboarding();
+  }
+}
+
 renderGuide();
-void window.companion.settings.get().then(renderSettings);
-void refreshTrust();
+void init();

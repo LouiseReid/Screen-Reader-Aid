@@ -518,7 +518,7 @@ notarization step and no Gatekeeper-clean distribution.
   - [x] 5.2.1 Settings persistence layer (DIY JSON + IPC + preload + types) — awaiting human verification (2026-06-23)
   - [x] 5.2.2 Wire settings into runtime behaviour (tracking / pin / opacity / shortcut) — VERIFIED by human 2026-06-25
   - [x] 5.2.3 Settings UI (third tab) — code done, awaiting human verification (2026-06-25)
-  - [ ] 5.2.4 First-run onboarding (3-step in-window flow)
+  - [x] 5.2.4 First-run onboarding (3-step in-window flow) — code done, awaiting human verification (2026-06-25)
   - [ ] 5.2.5 "Help" entry to re-open onboarding
 - [ ] 5.1 Packaging / signing / notarization
   - [x] 5.1.0 Decide path — **Path C** chosen; bundle id/name/arch locked; cert NOT yet present (2026-06-25)
@@ -537,6 +537,50 @@ notarization step and no Gatekeeper-clean distribution.
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task 5.2.4 complete — awaiting human verification (2026-06-25)
+**Scope:** first-run 3-step onboarding inside the existing window (no new window).
+Triggered when `settings.hasOnboarded === false`.
+
+**Files changed:**
+- `index.html` — new `#onboarding-view` section with three `.onboard-step` blocks:
+  (1) Welcome/what-it-is + scope + approximation caveat, (2) Permission (mirrors the
+  permission view's steps, with its own `#onboard-open-settings` / `#onboard-recheck`
+  buttons + `#onboard-perm-status` live status line), (3) How-to-use (the 3 tabs +
+  live focus). Back/Next use `data-onboard` attributes; step 3 ends with
+  `#onboard-done` ("Get started"). Each step shows "Step N of 3".
+- `src/index.css` — `.onboard-list` + `.onboard-progress` styling (reuses existing
+  `.lede` / `.steps` / `.actions` / `.hint`).
+- `src/renderer.ts` — added `#onboarding-view` to `allViews` (so `show()` toggles it);
+  step controller `showOnboardStep()` (clamped) + `startOnboarding()`; click-delegation
+  for Back/Next; wired the onboarding permission buttons; `#onboard-done` sets
+  `hasOnboarded:true` then `refreshTrust()`. Replaced the startup `refreshTrust()` call
+  with `init()` which reads settings and routes: onboarded → trust check
+  (main/permission), not onboarded → onboarding.
+
+**Decisions/notes:**
+- Step 2 does NOT block progress on permission (Next is always enabled). After
+  "Get started", `refreshTrust()` still routes to the permission view if it's not
+  granted, so permission can't be skipped permanently.
+- Re-opening onboarding on demand is 5.2.5 (Help entry) — not in this task.
+
+**State for testing:** the dev settings file
+(`~/Library/Application Support/VoiceOver Companion/settings.json`) currently has
+`hasOnboarded:false`, so onboarding shows automatically on the next restart. To re-test
+after finishing it, delete that file (or wait for the 5.2.5 Help re-open).
+
+**Verified by Executor:** `npm test` → 64 passed; no lint/type errors.
+
+**Needs human check (restart `npm start`):**
+1. App opens on **onboarding step 1** (not straight to Inspector).
+2. Next/Back move between steps 1→2→3; "Step N of 3" updates.
+3. Step 2: "Open Accessibility Settings" opens System Settings; "Re-check" updates the
+   status line (granted vs not).
+4. Step 3 → **Get started** lands on the Inspector (or the Permission view if a11y
+   isn't granted yet).
+5. Restarting again goes **straight to Inspector** (no onboarding) — confirms
+   `hasOnboarded` persisted.
+6. (a11y) Tabbing the flow with VoiceOver reads headings, buttons, and the step labels.
 
 ### Task 5.2.3 complete — awaiting human verification (2026-06-25)
 **Scope:** add a third "Settings" tab with live controls. No new settings, no shortcut
