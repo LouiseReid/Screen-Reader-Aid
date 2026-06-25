@@ -30,7 +30,6 @@ declare global {
   interface CompanionApi {
     isTrusted: () => Promise<boolean>;
     openAccessibilitySettings: () => Promise<void>;
-    getFocusedElement: () => Promise<FocusedElement>;
     onFocusedElement: (callback: (data: FocusedElement) => void) => () => void;
     settings: CompanionSettingsApi;
   }

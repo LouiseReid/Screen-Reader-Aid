@@ -5,7 +5,6 @@ export interface Settings {
   liveTracking: boolean;
   pinned: boolean;
   opacity: number;
-  captureShortcut: string;
   hasOnboarded: boolean;
 }
 
@@ -13,7 +12,6 @@ export const DEFAULT_SETTINGS: Settings = {
   liveTracking: true,
   pinned: true,
   opacity: 1,
-  captureShortcut: 'CommandOrControl+Shift+A',
   hasOnboarded: false,
 };
 
@@ -35,12 +33,6 @@ function pickOpacity(value: unknown, fallback: number): number {
   return value;
 }
 
-function pickShortcut(value: unknown, fallback: string): string {
-  if (typeof value !== 'string') return fallback;
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? fallback : trimmed;
-}
-
 export function mergeSettings(
   input: unknown,
   defaults: Settings = DEFAULT_SETTINGS,
@@ -50,7 +42,6 @@ export function mergeSettings(
     liveTracking: pickBoolean(input.liveTracking, defaults.liveTracking),
     pinned: pickBoolean(input.pinned, defaults.pinned),
     opacity: pickOpacity(input.opacity, defaults.opacity),
-    captureShortcut: pickShortcut(input.captureShortcut, defaults.captureShortcut),
     hasOnboarded: pickBoolean(input.hasOnboarded, defaults.hasOnboarded),
   };
 }
@@ -122,7 +113,6 @@ function shallowEqual(a: Settings, b: Settings): boolean {
     a.liveTracking === b.liveTracking &&
     a.pinned === b.pinned &&
     a.opacity === b.opacity &&
-    a.captureShortcut === b.captureShortcut &&
     a.hasOnboarded === b.hasOnboarded
   );
 }

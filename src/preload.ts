@@ -6,8 +6,6 @@ contextBridge.exposeInMainWorld('companion', {
   isTrusted: (): Promise<boolean> => ipcRenderer.invoke('a11y:isTrusted'),
   openAccessibilitySettings: (): Promise<void> =>
     ipcRenderer.invoke('a11y:openSettings'),
-  getFocusedElement: (): Promise<FocusedElement> =>
-    ipcRenderer.invoke('a11y:getFocusedElement'),
   onFocusedElement: (callback: (data: FocusedElement) => void): (() => void) => {
     const listener = (_event: IpcRendererEvent, data: FocusedElement): void =>
       callback(data);

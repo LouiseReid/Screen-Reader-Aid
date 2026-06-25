@@ -34,7 +34,6 @@ describe('mergeSettings', () => {
       liveTracking: 'yes',
       pinned: 1,
       opacity: 'half',
-      captureShortcut: 12,
       hasOnboarded: null,
     });
     expect(result).toEqual(DEFAULT_SETTINGS);
@@ -48,21 +47,6 @@ describe('mergeSettings', () => {
       DEFAULT_SETTINGS.opacity,
     );
     expect(mergeSettings({ opacity: 0.5 }).opacity).toBe(0.5);
-  });
-
-  it('falls back to default for an empty or whitespace shortcut', () => {
-    expect(mergeSettings({ captureShortcut: '' }).captureShortcut).toBe(
-      DEFAULT_SETTINGS.captureShortcut,
-    );
-    expect(mergeSettings({ captureShortcut: '   ' }).captureShortcut).toBe(
-      DEFAULT_SETTINGS.captureShortcut,
-    );
-  });
-
-  it('trims whitespace around a valid shortcut', () => {
-    expect(mergeSettings({ captureShortcut: '  Alt+F1  ' }).captureShortcut).toBe(
-      'Alt+F1',
-    );
   });
 
   it('ignores unknown fields', () => {

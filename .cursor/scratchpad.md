@@ -332,7 +332,8 @@ should be reviewed by the human before moving on.
 **Task 5.2.1 — Settings persistence layer (foundation, no UI)**
 - Add `electron-store` (de-facto Electron choice, JSON in `app.getPath('userData')`).
 - Define a `Settings` type with sensible defaults:
-  `{ liveTracking: true, pinned: true, opacity: 1, captureShortcut: 'CommandOrControl+Shift+A', hasOnboarded: false }`.
+  `{ liveTracking: true, pinned: true, opacity: 1, hasOnboarded: false }`.
+  (NOTE 2026-06-25: `captureShortcut` was removed — see "Capture logic removed" entry.)
 - Main process: `settings:get` / `settings:set` IPC handlers.
 - Preload: expose `window.companion.settings.{get(), set(partial), onChange(cb)}`.
 - Types in `src/global.d.ts`.
@@ -364,9 +365,8 @@ should be reviewed by the human before moving on.
   - Live tracking — checkbox
   - Always on top (pin) — checkbox
   - Opacity — range slider 30–100% with live preview
-  - Capture shortcut — read-only display of the current combo (v1; capture/edit can
-    be a follow-up if we want it)
   - "Reset to defaults" button
+  (NOTE 2026-06-25: the capture-shortcut control is dropped — capture logic removed.)
 - All controls keyboard-accessible and labelled (we're an a11y app — must walk the
   walk).
 - Success criteria:
@@ -380,7 +380,7 @@ should be reviewed by the human before moving on.
   1. **Welcome** — one paragraph: what this is (live AX co-pilot for web + VO),
      scope (web apps, not native), the "approximation" caveat.
   2. **Permission** — reuses the existing permission view's content/buttons.
-  3. **How to use** — capture shortcut, the 3 tabs, that focus updates live.
+  3. **How to use** — the 3 tabs, that focus updates live.
 - "Get started" on step 3 sets `hasOnboarded = true` and shows the inspector.
 - Success criteria:
   - Wiping `userData` or setting `hasOnboarded=false` triggers the flow on next
@@ -516,7 +516,7 @@ notarization step and no Gatekeeper-clean distribution.
   - [x] ✅ MILESTONE E.1 reached — cleaner panel, less-hedged/more-accurate announcement, Safari-recommendation banner (2026-06-25)
 - [ ] **5.2 Onboarding & settings (PRIORITY — in progress)**
   - [x] 5.2.1 Settings persistence layer (DIY JSON + IPC + preload + types) — awaiting human verification (2026-06-23)
-  - [ ] 5.2.2 Wire settings into runtime behaviour (tracking / pin / opacity / shortcut)
+  - [x] 5.2.2 Wire settings into runtime behaviour (tracking / pin / opacity / shortcut) — VERIFIED by human 2026-06-25
   - [ ] 5.2.3 Settings UI (third tab)
   - [ ] 5.2.4 First-run onboarding (3-step in-window flow)
   - [ ] 5.2.5 "Help" entry to re-open onboarding
@@ -537,6 +537,64 @@ notarization step and no Gatekeeper-clean distribution.
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Capture logic removed (user request) — 2026-06-25
+User decided they don't want any on-demand "capture" feature. Live focus tracking is
+now the only way the panel updates. Removed all JS-level capture logic:
+- `src/settings.ts` — dropped the `captureShortcut` field (interface, defaults,
+  `mergeSettings`, `shallowEqual`) and the `pickShortcut` helper.
+- `src/settings.test.ts` — removed the two shortcut tests + the `captureShortcut` case
+  in the wrong-types test. (64 tests pass, was 66.)
+- `src/main.ts` — removed the `globalShortcut` import, `currentShortcut`/`captureNow`/
+  `setCaptureShortcut`, the `a11y:getFocusedElement` IPC handler, the `getFocusedElement`
+  entry in the addon type, the `setCaptureShortcut` calls (startup + subscribe), and
+  `globalShortcut.unregisterAll()` in `will-quit`. Kept live tracking + pin + opacity.
+- `src/preload.ts` — removed `getFocusedElement` from `window.companion`.
+- `src/global.d.ts` — removed `getFocusedElement` from `CompanionApi`.
+- LEFT UNTOUCHED: the native `GetFocusedElement` in `native/addon.mm` (C++). Removing it
+  needs a native rebuild and it's now simply unused/unexposed — harmless dead code.
+  Flagging in case you want it stripped in a later native pass.
+Verified: `npm test` → 64 passed; no lint/type errors.
+Needs human check (restart `npm start`): ⌘⇧A no longer does anything; live tracking,
+pin, and opacity still work.
+
+### Task 5.2.2 — VERIFIED by human 2026-06-25 (pin, opacity+clamp, live tracking all confirmed working)
+A dev-only convenience was added in this task: `mainWindow.webContents.openDevTools({ mode: 'detach' })`
+inside the dev-server branch of `createWindow` (panel is `focusable:false`, so ⌥⌘I
+can't reach it). Only runs under `npm start`, never in the packaged app. Revisit when
+the Settings UI (5.2.3) exists — may want to remove the auto-open then.
+
+### Task 5.2.2 complete — awaiting human verification (2026-06-25)
+**Scope:** wire the persisted settings into runtime behaviour. No UI yet (that's
+5.2.3). `src/main.ts` only.
+
+**Files changed:**
+- `src/main.ts`:
+  - Replaced the hardcoded `CAPTURE_SHORTCUT` const + one-shot shortcut/tracking setup
+    with settings-driven helpers: `setCaptureShortcut(next)` (re-registers the global
+    shortcut, reverts to the previous combo if the new one fails to register),
+    `setLiveTracking(enabled)` (start/stop the native AX observer, JS-side state guard),
+    `applyWindowSettings(s)` (`setAlwaysOnTop(pinned,'floating')` + `setOpacity`).
+  - On `ready`: apply persisted settings to the new window + runtime.
+  - Extended the `settingsStore.subscribe` handler to apply changes live (window pin/
+    opacity, shortcut, tracking) in addition to broadcasting `settings:changed`.
+  - Opacity is already clamped to 0.3–1 at the store layer (5.2.1), so the window can't
+    be made invisible.
+
+**Verified by Executor:** `npm test` → 66 passed; no lint/type errors. (Electron
+runtime wiring isn't unit-testable without mocking Electron; the pure clamping logic is
+covered by settings.test.ts.)
+
+**Needs human check (restart required — main changed: Ctrl-C then `npm start`).** From
+the renderer DevTools console:
+1. `await window.companion.settings.set({ pinned: false })` → panel stops floating
+   on top; `{ pinned: true }` → floats again.
+2. `await window.companion.settings.set({ opacity: 0.6 })` → panel becomes translucent;
+   `{ opacity: 0.1 }` clamps to 0.3 (still visible); `{ opacity: 1 }` → solid.
+3. `await window.companion.settings.set({ liveTracking: false })` → moving focus in
+   other apps no longer updates the panel; `{ liveTracking: true }` → live updates
+   resume. (Confirms the AX observer detaches/re-attaches without crashing.)
+4. All three persist across a restart (5.2.1 already proven).
 
 ### Task 5.1.2 prepped (unsigned DMG works; signing wired but inert) — 2026-06-25
 **Scope:** make config macOS-ready + DMG, with signing/notarization opt-in via env so

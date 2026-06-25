@@ -1,11 +1,4 @@
-import {
-  app,
-  BrowserWindow,
-  globalShortcut,
-  ipcMain,
-  shell,
-  systemPreferences,
-} from 'electron';
+import { app, BrowserWindow, ipcMain, shell, systemPreferences } from 'electron';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import started from 'electron-squirrel-startup';
@@ -25,7 +18,6 @@ const addonPath = app.isPackaged
   : path.join(app.getAppPath(), 'native', 'build', 'Release', 'addon.node');
 const accessibility = nativeRequire(addonPath) as {
   isTrusted: () => boolean;
-  getFocusedElement: () => Record<string, unknown>;
   startFocusTracking: (callback: (element: Record<string, unknown>) => void) => boolean;
   stopFocusTracking: () => boolean;
 };
@@ -33,16 +25,37 @@ const accessibility = nativeRequire(addonPath) as {
 let mainWindow: BrowserWindow | null = null;
 let settingsStore: SettingsStore | null = null;
 
-// Capturing via a global shortcut avoids stealing focus from the app under test
-// (clicking inside our window would make our own control the "focused element").
-const CAPTURE_SHORTCUT = 'CommandOrControl+Shift+A';
+let trackingActive = false;
+
+const pushFocused = (element: Record<string, unknown>): void => {
+  mainWindow?.webContents.send('a11y:focusedElement', element);
+};
+
+// Start/stop live AX focus tracking to match the liveTracking setting.
+const setLiveTracking = (enabled: boolean): void => {
+  if (enabled && !trackingActive) {
+    accessibility.startFocusTracking(pushFocused);
+    trackingActive = true;
+  } else if (!enabled && trackingActive) {
+    accessibility.stopFocusTracking();
+    trackingActive = false;
+  }
+};
+
+// Apply the window-related settings (pin + opacity) to the panel.
+const applyWindowSettings = (s: Settings): void => {
+  if (!mainWindow) {
+    return;
+  }
+  mainWindow.setAlwaysOnTop(s.pinned, 'floating');
+  mainWindow.setOpacity(s.opacity);
+};
 
 // Deep link to System Settings > Privacy & Security > Accessibility.
 const ACCESSIBILITY_SETTINGS_URL =
   'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
 
 ipcMain.handle('a11y:isTrusted', () => accessibility.isTrusted());
-ipcMain.handle('a11y:getFocusedElement', () => accessibility.getFocusedElement());
 ipcMain.handle('a11y:openSettings', () => {
   // Prompting registers this app in the Accessibility list (so the user has
   // something to toggle) and shows the macOS system dialog.
@@ -67,6 +80,9 @@ const createWindow = () => {
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    // Dev-only: the panel is focusable:false so ⌥⌘I can't reach it; open the
+    // console in a detached window we can type into for manual testing.
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     mainWindow.loadFile(
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
@@ -94,26 +110,19 @@ app.on('ready', async () => {
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send('settings:changed', next);
     }
+    applyWindowSettings(next);
+    setLiveTracking(next.liveTracking);
   });
 
   createWindow();
 
-  const registered = globalShortcut.register(CAPTURE_SHORTCUT, () => {
-    const element = accessibility.getFocusedElement();
-    mainWindow?.webContents.send('a11y:focusedElement', element);
-  });
-  if (!registered) {
-    console.warn('[a11y] Failed to register capture shortcut', CAPTURE_SHORTCUT);
-  }
-
-  // Live tracking: push the focused element to the window as focus changes.
-  accessibility.startFocusTracking((element) => {
-    mainWindow?.webContents.send('a11y:focusedElement', element);
-  });
+  // Apply persisted settings to the freshly created window + runtime.
+  const settings = settingsStore.get();
+  applyWindowSettings(settings);
+  setLiveTracking(settings.liveTracking);
 });
 
 app.on('will-quit', () => {
-  globalShortcut.unregisterAll();
   accessibility.stopFocusTracking();
 });
 
