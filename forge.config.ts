@@ -10,6 +10,13 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    icon: './build/icon',
+    appBundleId: 'com.louisereid.voiceovercompanion',
+    appCategoryType: 'public.app-category.developer-tools',
+    // Our custom native addon is not in node_modules and is excluded from the
+    // asar, so ship it as a resource and load it from process.resourcesPath at
+    // runtime (see src/main.ts). Must be built first via `npm run build:native`.
+    extraResource: ['./native/build/Release/addon.node'],
   },
   rebuildConfig: {},
   makers: [

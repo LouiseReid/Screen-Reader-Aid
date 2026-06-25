@@ -509,10 +509,11 @@ notarization step and no Gatekeeper-clean distribution.
 - [x] 4.2 Wire learn-more into UI (VERIFIED by human 2026-06-23)
 - [x] 4.3 VoiceOver driving guide / quick reference (VERIFIED by human 2026-06-19)
 - [x] 4.4 Contextual "what to do next" hints (VERIFIED by human 2026-06-19)
-- [ ] **5.0 Pre-bundling UX feedback (do FIRST — added 2026-06-25)**
-  - [x] UX.1 Remove "Capture now" button — awaiting human verification (2026-06-25)
-  - [x] UX.2 Tighten announcement (drop "likely" + "edit text"/"blank" accuracy) — awaiting human verification (2026-06-25)
-  - [x] UX.3 Non-Safari browser warning banner (native bundleId + classifier + UI) — awaiting human verification (2026-06-25)
+- [x] **5.0 Pre-bundling UX feedback (added 2026-06-25)**
+  - [x] UX.1 Remove "Capture now" button (VERIFIED by human 2026-06-25)
+  - [x] UX.2 Tighten announcement (drop "likely" + "edit text"/"blank" accuracy) (VERIFIED by human 2026-06-25 — "blank" + checkbox order confirmed correct against real VoiceOver)
+  - [x] UX.3 Non-Safari browser warning banner (native bundleId + classifier + UI) (VERIFIED by human 2026-06-25)
+  - [x] ✅ MILESTONE E.1 reached — cleaner panel, less-hedged/more-accurate announcement, Safari-recommendation banner (2026-06-25)
 - [ ] **5.2 Onboarding & settings (PRIORITY — in progress)**
   - [x] 5.2.1 Settings persistence layer (DIY JSON + IPC + preload + types) — awaiting human verification (2026-06-23)
   - [ ] 5.2.2 Wire settings into runtime behaviour (tracking / pin / opacity / shortcut)
@@ -520,11 +521,12 @@ notarization step and no Gatekeeper-clean distribution.
   - [ ] 5.2.4 First-run onboarding (3-step in-window flow)
   - [ ] 5.2.5 "Help" entry to re-open onboarding
 - [ ] 5.1 Packaging / signing / notarization
-  - [ ] 5.1.0 Decide path (B ad-hoc vs C Developer ID) + collect credentials — HUMAN GATE
-  - [ ] 5.1.1 App identity polish (productName, bundleId, icns)
-  - [ ] 5.1.2 Configure forge makers + osxSign / osxNotarize
-  - [ ] 5.1.3 Verify nested binaries are signed (native .node)
-  - [ ] 5.1.4 Accessibility-grant persistence test across rebuild
+  - [x] 5.1.0 Decide path — **Path C** chosen; bundle id/name/arch locked; cert NOT yet present (2026-06-25)
+  - [x] 5.1.1 App identity polish (bundleId + category + icon) — launch verified; icon awaiting visual check (2026-06-25)
+  - [x] 5.1.1b Ship native addon in packaged app (extraResource + require-path) — awaiting human launch test (2026-06-25)
+  - [ ] 5.1.2 Configure forge makers (darwin + DMG) + osxSign / osxNotarize — NEEDS cert + creds
+  - [ ] 5.1.3 Verify nested binaries are signed (native .node) — NEEDS cert
+  - [ ] 5.1.4 Accessibility-grant persistence test across rebuild — NEEDS signed build
   - [ ] 5.1.5 Audit / dependency cleanup decision
 - [ ] 5.3 (Stretch) contrast checks
   - [ ] 5.3.1 Screen Recording permission flow
@@ -535,6 +537,102 @@ notarization step and no Gatekeeper-clean distribution.
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task 5.1.1 icon complete — awaiting human visual check (2026-06-25)
+- User explicitly asked for an app icon → generated one (allowed: explicit request).
+- Concept: blue→indigo squircle with a white VoiceOver-style focus ring + voice waves.
+- The generated raw image was 1536×1024 with NO alpha (near-white background), so it
+  was processed with Pillow into a proper macOS icon:
+  - cropped tight to the squircle bbox `(302,41,1234,972)`, padded square,
+  - applied a supersampled rounded-rectangle alpha mask (transparent corners),
+  - scaled to 824px and centered on a 1024 transparent canvas (~100px macOS margin),
+  - built `build/icon.icns` via `iconutil` from a full 16→1024 iconset (incl. @2x).
+- Files added (tracked — `build/icon.*` is NOT gitignored; only `build/Release` +
+  `native/build/` are): `build/icon.png` (1024 processed source) + `build/icon.icns`.
+- `forge.config.ts`: `packagerConfig.icon = './build/icon'`.
+- Re-packaged: app now has `Contents/Resources/electron.icns` (1024) +
+  `CFBundleIconFile = electron.icns`.
+- Tooling notes (Lessons-worthy): no ImageMagick/Pillow preinstalled — installed
+  Pillow via pip (network); `iconutil` fails with "Invalid Iconset" **inside the agent
+  sandbox** (needs a system service) — run it with full/all permissions.
+- **Needs human visual check:** open the new build at
+  `out/VoiceOver Companion-darwin-arm64/VoiceOver Companion.app` (right-click → Open)
+  and confirm the icon looks right in Finder/Dock. (Dev `npm start` still shows the
+  default Electron dock icon — only the packaged app uses ours.)
+
+### Tasks 5.1.1 + 5.1.1b complete — awaiting human verification (2026-06-25)
+**Scope:** credential-free packaging work — app identity + make the native addon ship
+in a packaged build. No signing (deferred until Developer ID cert exists).
+
+**Files changed:**
+- `forge.config.ts` — `packagerConfig` now sets `appBundleId`
+  (`com.louisereid.voiceovercompanion`), `appCategoryType`
+  (`public.app-category.developer-tools`), and `extraResource:
+  ['./native/build/Release/addon.node']` so the custom addon is copied into the app's
+  `Contents/Resources/`. (Product name already came from `package.json` productName.)
+- `src/main.ts` — addon require path is now conditional: `app.isPackaged` →
+  `path.join(process.resourcesPath, 'addon.node')`; dev → existing
+  `app.getAppPath()/native/build/Release/addon.node`.
+
+**Verified by Executor (`npm run package`, arm64):**
+- Build succeeded → `out/VoiceOver Companion-darwin-arm64/VoiceOver Companion.app`.
+- `Info.plist`: CFBundleIdentifier `com.louisereid.voiceovercompanion`, CFBundleName
+  `VoiceOver Companion`, LSApplicationCategoryType `public.app-category.developer-tools`.
+- Executable is Mach-O arm64.
+- `Contents/Resources/addon.node` present (84 KB, executable) → addon ships correctly.
+- `out/` is gitignored (line 92).
+
+**COULD NOT verify in sandbox (needs human — sandbox can't launch the Electron GUI):**
+that the PACKAGED app actually launches and loads the addon. Please:
+1. Open `out/VoiceOver Companion-darwin-arm64/VoiceOver Companion.app`. It's UNSIGNED
+   (ad-hoc), so Gatekeeper will block a double-click — **right-click → Open** the first
+   time (or `xattr -dr com.apple.quarantine "…/VoiceOver Companion.app"`).
+2. It will appear as a NEW app identity to macOS, so grant **Accessibility** permission
+   to "VoiceOver Companion" (not Electron/Cursor) in System Settings, then relaunch.
+3. Confirm live focus tracking + announcements work in the packaged app (this proves
+   the addon loaded from Resources).
+- Caveat: Fuses (`OnlyLoadAppFromAsar`, asar integrity) are on; addon loading from
+  Resources should be unaffected, but the launch test is the real proof.
+
+**STILL PENDING (flagged, not done this turn):**
+- App **icon** (`.icns`) — deferred. I won't auto-generate an image without you asking;
+  tell me if you want a placeholder icon generated or you'll supply one.
+- Signing/notarization (5.1.2–5.1.4) — blocked on the Developer ID cert.
+
+### Task 5.1.0 — bundling decision recorded + gate findings (2026-06-25)
+
+**DECISION (locked with human 2026-06-25):**
+- **Signing path: C** — Developer ID Application + notarization (shippable to other
+  Macs without Gatekeeper warnings).
+- **Bundle identifier:** `com.louisereid.voiceovercompanion`
+- **Product name:** `VoiceOver Companion`
+- **Architecture:** **arm64 only** (Apple Silicon). NOTE/assumption flagged: this
+  means the notarized build runs on Apple-Silicon Macs only, not Intel. Accepted by
+  human.
+- **Artefacts:** DMG (primary) + ZIP.
+
+**GATE FINDINGS (block full Path C execution — surfaced to human):**
+1. `security find-identity -v -p codesigning` → **0 valid identities**. There is NO
+   "Developer ID Application" certificate in the Keychain yet, so signing +
+   notarization (Tasks 5.1.2+) cannot run until the human:
+   - has an active Apple Developer Program membership ($99/yr), and
+   - installs a **Developer ID Application** certificate into the login Keychain, and
+   - provides (later, via a GITIGNORED `.env`, never chat/commit): Apple **Team ID**,
+     Apple ID **email**, and an **app-specific password** for `notarytool`.
+2. Current `forge.config.ts` is not macOS-ready for this app:
+   - Ships Windows (`MakerSquirrel`) + Linux (`MakerDeb`/`MakerRpm`) makers — should be
+     scoped to darwin; add `@electron-forge/maker-dmg`.
+   - `packagerConfig.asar: true` but our custom native addon lives at
+     `native/build/Release/addon.node` and is loaded via
+     `app.getAppPath()` — it will NOT be inside the asar / found at runtime in a
+     packaged build. **Prerequisite for ANY runnable bundle (B or C):** ship the
+     addon via `extraResource` (or relocate) and update the runtime require path.
+
+**PLANNER NOTE — re-sequencing proposal:** Tasks 5.1.1 (app identity polish) and a new
+prerequisite (native-addon packaging) are **credential-free** and can proceed now
+while the human sorts the Apple Developer cert. Signing/notarization (5.1.2–5.1.4)
+waits for the cert. Proposed new task inserted: **5.1.1b — ship native addon in
+packaged app** (extraResource + require-path fix), done before signing.
 
 ### Task UX.3 complete — awaiting human verification (2026-06-25)
 **Scope:** warn when the app under test is a non-Safari browser. Native bundle-id

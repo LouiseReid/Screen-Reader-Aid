@@ -17,10 +17,13 @@ if (started) {
 }
 
 // Load the native accessibility addon at runtime (Vite leaves .node external).
+// In a packaged app the addon is copied to Resources via forge `extraResource`;
+// in dev it lives under the project's native build output.
 const nativeRequire = createRequire(__filename);
-const accessibility = nativeRequire(
-  path.join(app.getAppPath(), 'native', 'build', 'Release', 'addon.node'),
-) as {
+const addonPath = app.isPackaged
+  ? path.join(process.resourcesPath, 'addon.node')
+  : path.join(app.getAppPath(), 'native', 'build', 'Release', 'addon.node');
+const accessibility = nativeRequire(addonPath) as {
   isTrusted: () => boolean;
   getFocusedElement: () => Record<string, unknown>;
   startFocusTracking: (callback: (element: Record<string, unknown>) => void) => boolean;
