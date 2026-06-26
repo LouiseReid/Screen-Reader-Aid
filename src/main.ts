@@ -66,7 +66,7 @@ ipcMain.handle('a11y:openSettings', () => {
 const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 420,
-    height: 640,
+    height: 840,
     show: false,
     alwaysOnTop: true,
     focusable: false,

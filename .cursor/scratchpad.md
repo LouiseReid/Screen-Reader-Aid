@@ -527,7 +527,7 @@ notarization step and no Gatekeeper-clean distribution.
   - [~] 5.1.2 Forge makers (darwin + DMG) done + unsigned DMG verified; osxSign/osxNotarize wired but inert until cert/creds (2026-06-25)
   - [ ] 5.1.3 Verify nested binaries are signed (native .node) — NEEDS cert
   - [ ] 5.1.4 Accessibility-grant persistence test across rebuild — NEEDS signed build
-  - [ ] 5.1.5 Audit / dependency cleanup decision
+  - [x] 5.1.5 Audit / dependency cleanup decision — DECIDED 2026-06-25: accept dev-only vulns, no dep changes, revisit at Electron Forge 8
 - [ ] 5.3 (Stretch) contrast checks
   - [ ] 5.3.1 Screen Recording permission flow
   - [ ] 5.3.2 Native region screenshot (CGWindowListCreateImage)
@@ -537,6 +537,37 @@ notarization step and no Gatekeeper-clean distribution.
 ---
 
 ## Executor's Feedback or Assistance Requests
+
+### Task 5.1.5 — npm audit analysis (awaiting human decision) — 2026-06-25
+Ran `npm audit`: **31 vulns (3 low, 1 moderate, 27 high)**. ALL are devDependencies
+(build/dev toolchain); the shipped app's only runtime deps are `electron-squirrel-startup`
++ `node-addon-api`, neither flagged. So **zero end-user exposure** in the packaged app.
+
+Three real root causes (the "27 high" is mostly one `tar` advisory cascading through
+~25 `@electron-forge/*` sub-packages):
+- `tar` (+ `cacache`, `make-fetch-happen`) — HIGH — via `@electron-forge/*` →
+  `@electron/rebuild` → `@electron/node-gyp`. Only "fix" is a breaking change (npm wants
+  to install `@electron-forge/cli@7.6.1`, effectively a downgrade from our 7.11.2).
+- `tmp` — HIGH — via `@electron-forge/cli` → `@inquirer/prompts` → `external-editor`.
+  **No fix available.**
+- `esbuild` — MODERATE — via `vite@5`. Only fix is `vite@8` (breaking).
+
+We're already on the latest Forge 7.x (`^7.11.2`); no non-breaking version fixes
+`tar`/`tmp` (Forge 7 pins them transitively). `npm audit fix --force` would attempt a
+Forge downgrade + `vite@8` — high risk to the build, no user-facing benefit.
+
+Residual risk is dev-machine-only and narrow: malicious npm archive at install (`tar`),
+malicious site hitting the Vite dev server during `npm start` (`esbuild`), symlink race
+in temp during Forge CLI prompts (`tmp`).
+
+**Executor recommendation:** ACCEPT + DOCUMENT as dev-only; revisit when moving to the
+Electron Forge 8 line (re-bases the tar/node-gyp chain). Do NOT run `--force`. No deps
+changed — awaiting Planner/human decision before any dependency edits.
+
+**DECISION (human, 2026-06-25): ACCEPT.** No dependency changes. Treat as dev-only,
+re-audit when upgrading to the Electron Forge 8 line. (NB: this rationale lives here in
+the gitignored scratchpad — if a committed record is wanted later, add a short note to
+the README.)
 
 ### Task 5.2.5 complete — awaiting human verification (2026-06-25)
 **Scope:** an in-app entry to re-open the onboarding flow on demand.
